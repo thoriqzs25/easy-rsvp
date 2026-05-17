@@ -1,0 +1,64 @@
+import type { InviteLocale } from "./types";
+
+export const inviteCopy = {
+  en: {
+    metaTitle: "You’re invited",
+    greeting: (name: string) => `Dear ${name},`,
+    plusOne: "Your invitation includes a +1.",
+    loading: "Loading your invitation…",
+    confirmBtn: "Confirm attendance",
+    declineBtn: "Decline",
+    wishesLabel: "Wedding wishes or message (optional)",
+    wishesPlaceholder: "Share a short wish for us…",
+    submitWish: "Submit confirmation",
+    back: "Back",
+    declineConfirm:
+      "Are you sure you want to decline? You can contact the hosts if you change your mind.",
+    declineYes: "Yes, decline",
+    thankYou: "Thank you!",
+    acceptedLead:
+      "We’re so glad you can celebrate with us. Your details are below.",
+    eventHeading: "Event details",
+    expiredTitle: "This invitation has expired",
+    expiredBody:
+      "The RSVP window for this link has closed. If you think this is a mistake, please reach out to the hosts.",
+    revokedTitle: "This invitation is no longer valid",
+    revokedBody:
+      "This link has been withdrawn. If you have questions, please contact the hosts.",
+    declinedTitle: "You’ve declined this invitation",
+    declinedBody: "Thank you for letting us know. We’ll miss you!",
+    notFoundTitle: "Invitation not found",
+    notFoundBody: "This link may be incorrect or no longer available.",
+  },
+  id: {
+    metaTitle: "Undangan",
+    greeting: (name: string) => `Kepada ${name},`,
+    plusOne: "Undangan ini mencakup +1.",
+    loading: "Memuat undangan…",
+    confirmBtn: "Konfirmasi hadir",
+    declineBtn: "Tidak dapat hadir",
+    wishesLabel: "Ucapan / harapan (opsional)",
+    wishesPlaceholder: "Tulis ucapan singkat…",
+    submitWish: "Kirim konfirmasi",
+    back: "Kembali",
+    declineConfirm:
+      "Yakin ingin menolak undangan? Jika berubah pikiran, hubungi kami.",
+    declineYes: "Ya, tolak",
+    thankYou: "Terima kasih!",
+    acceptedLead: "Senang sekali Anda bisa hadir. Rincian acara ada di bawah.",
+    eventHeading: "Detail acara",
+    expiredTitle: "Undangan ini sudah berakhir",
+    expiredBody:
+      "Batas konfirmasi untuk tautan ini sudah lewat. Jika ini kesalahan, silakan hubungi kami.",
+    revokedTitle: "Undangan ini tidak lagi berlaku",
+    revokedBody:
+      "Tautan ini telah ditarik. Jika ada pertanyaan, silakan hubungi kami.",
+    declinedTitle: "Anda telah menolak undangan",
+    declinedBody: "Terima kasih atas konfirmasinya — sampai jumpa lain waktu!",
+    notFoundTitle: "Undangan tidak ditemukan",
+    notFoundBody: "Tautan mungkin salah atau tidak lagi tersedia.",
+  },
+} satisfies Record<
+  InviteLocale,
+  Record<string, string | ((name: string) => string)>
+>;
