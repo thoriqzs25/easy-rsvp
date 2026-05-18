@@ -5,7 +5,10 @@ import { useRouter } from "next/navigation";
 import { useAdminSession } from "@/components/AdminSessionContext";
 import { adminJson } from "@/lib/admin-fetch";
 import type { InviteLocale } from "@/lib/types";
-import { addDays, toDatetimeLocalValue } from "@/lib/datetime-local";
+import {
+  defaultInvitationExpiresAt,
+  toDatetimeLocalValue,
+} from "@/lib/datetime-local";
 
 export default function NewInvitationPage() {
   const router = useRouter();
@@ -17,7 +20,7 @@ export default function NewInvitationPage() {
     if (session && !canEdit) router.replace("/admin/invitations");
   }, [session, canEdit, router]);
 
-  const defaultExp = addDays(new Date(), 7);
+  const defaultExp = defaultInvitationExpiresAt();
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [locale, setLocale] = useState<InviteLocale>("en");
@@ -126,7 +129,7 @@ export default function NewInvitationPage() {
         </div>
         <div>
           <label className="block text-sm text-stone-600 mb-1">
-            Expires at (default +7 days, adjustable)
+            Expires at (default: 7 days from now, 23:59 local — adjustable)
           </label>
           <input
             type="datetime-local"

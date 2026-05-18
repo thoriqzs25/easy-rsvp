@@ -20,9 +20,13 @@ export default function BootstrapPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password, name, passkey }),
       });
-      const j = await res.json().catch(() => ({}));
+      const j = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        detail?: string;
+      };
       if (!res.ok) {
-        setMsg((j as { error?: string }).error || "Request failed");
+        const parts = [j.error, j.detail].filter(Boolean);
+        setMsg(parts.length ? parts.join(" — ") : "Request failed");
         return;
       }
       setOk(true);
@@ -88,7 +92,7 @@ export default function BootstrapPage() {
           </div>
           {msg ? (
             <p
-              className={`text-sm px-2 py-1 rounded ${
+              className={`text-sm px-2 py-1 rounded whitespace-pre-wrap break-words ${
                 ok ? "text-green-800 bg-green-50" : "text-red-600 bg-red-50"
               }`}
             >

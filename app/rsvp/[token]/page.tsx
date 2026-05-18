@@ -33,6 +33,34 @@ function str(
   return typeof v === "string" ? v : "";
 }
 
+function eventHasContent(lines: EventLines | undefined): boolean {
+  if (!lines) return false;
+  return Boolean(
+    lines.heading?.trim() ||
+      lines.date?.trim() ||
+      lines.time?.trim() ||
+      lines.venue?.trim() ||
+      lines.notes?.trim(),
+  );
+}
+
+function EventDetailsUl({ lines }: { lines: EventLines | undefined }) {
+  if (!eventHasContent(lines) || !lines) return null;
+  return (
+    <ul className="space-y-3 text-stone-700 text-sm sm:text-base">
+      {lines.heading?.trim() ? (
+        <li className="font-medium text-lg">{lines.heading}</li>
+      ) : null}
+      {lines.date?.trim() ? <li>{lines.date}</li> : null}
+      {lines.time?.trim() ? <li>{lines.time}</li> : null}
+      {lines.venue?.trim() ? <li>{lines.venue}</li> : null}
+      {lines.notes?.trim() ? (
+        <li className="text-sm text-stone-500 whitespace-pre-wrap">{lines.notes}</li>
+      ) : null}
+    </ul>
+  );
+}
+
 export default function RsvpPage({ params }: { params: { token: string } }) {
   const { token } = params;
   const [data, setData] = useState<PublicPayload | null | "nf">(null);
@@ -136,21 +164,10 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
           <h2 className="font-serif text-xl text-stone-800 mb-4">
             {c.eventHeading}
           </h2>
-          {ev ? (
-            <ul className="space-y-3 text-stone-700">
-              {ev.heading ? (
-                <li className="font-medium text-lg">{ev.heading}</li>
-              ) : null}
-              {ev.date ? <li>{ev.date}</li> : null}
-              {ev.time ? <li>{ev.time}</li> : null}
-              {ev.venue ? <li>{ev.venue}</li> : null}
-              {ev.notes ? (
-                <li className="text-sm text-stone-500 whitespace-pre-wrap">{ev.notes}</li>
-              ) : null}
-            </ul>
-          ) : (
+          <EventDetailsUl lines={ev} />
+          {!eventHasContent(ev) ? (
             <p className="text-stone-500 text-sm">{c.loading}</p>
-          )}
+          ) : null}
           {data.wishes ? (
             <div className="mt-8 pt-6 border-t border-stone-100">
               <p className="text-xs uppercase text-stone-500 mb-1">{c.wishesLabel}</p>
@@ -201,6 +218,8 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
     );
   }
 
+  const evPending = data.event?.lines?.[locale];
+
   /* pending */
   return (
     <div className="min-h-screen bg-gradient-to-b from-amber-50/50 to-stone-50 p-6">
@@ -209,6 +228,17 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
           {str(c, "greeting", data.guestName)}
         </h1>
         <p className="text-rose-900/80 text-sm mb-8">{c.plusOne}</p>
+
+        <div className="mb-8 pb-8 border-b border-stone-100">
+          <h2 className="font-serif text-xl text-stone-800 mb-2">
+            {c.eventHeading}
+          </h2>
+          <p className="text-sm text-stone-600 mb-4">{c.eventRsvpHint}</p>
+          <EventDetailsUl lines={evPending} />
+          {!eventHasContent(evPending) ? (
+            <p className="text-stone-500 text-sm italic">{c.eventDetailsPending}</p>
+          ) : null}
+        </div>
 
         {err ? (
           <p className="text-red-600 text-sm mb-4 bg-red-50 border border-red-100 rounded-lg px-3 py-2">

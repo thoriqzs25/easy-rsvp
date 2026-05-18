@@ -11,3 +11,16 @@ export function addDays(d: Date, days: number) {
   x.setDate(x.getDate() + days);
   return x;
 }
+
+/** Same calendar day in local time, advanced by `days`, at 23:59:59.999. */
+export function addDaysEndOfDay(base: Date, days: number): Date {
+  const x = new Date(base);
+  x.setDate(x.getDate() + days);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
+
+/** Default RSVP expiry: 7 days from now, end of that day (local). */
+export function defaultInvitationExpiresAt(): Date {
+  return addDaysEndOfDay(new Date(), 7);
+}

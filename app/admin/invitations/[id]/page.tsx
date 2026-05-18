@@ -5,7 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAdminSession } from "@/components/AdminSessionContext";
 import { adminJson } from "@/lib/admin-fetch";
-import { addDays, toDatetimeLocalValue } from "@/lib/datetime-local";
+import {
+  defaultInvitationExpiresAt,
+  toDatetimeLocalValue,
+} from "@/lib/datetime-local";
 import type { InviteLocale } from "@/lib/types";
 
 type Inv = {
@@ -34,7 +37,7 @@ export default function InvitationDetailPage({
     session?.role === "editor" || session?.role === "super_admin";
   const [inv, setInv] = useState<Inv | null>(null);
   const [expiresPick, setExpiresPick] = useState(
-    toDatetimeLocalValue(addDays(new Date(), 7)),
+    toDatetimeLocalValue(defaultInvitationExpiresAt()),
   );
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");

@@ -6,14 +6,9 @@ import { generateTokenUrlSafe } from "@/lib/tokens";
 import { logActivity } from "@/lib/activity";
 import { toIso } from "@/lib/serialize-invitation";
 import type { InviteLocale } from "@/lib/types";
+import { defaultInvitationExpiresAt } from "@/lib/datetime-local";
 
 export const dynamic = "force-dynamic";
-
-function defaultExpiresAt(): Date {
-  const d = new Date();
-  d.setDate(d.getDate() + 7);
-  return d;
-}
 
 async function uniqueInviteToken(db: Firestore): Promise<string> {
   for (let i = 0; i < 8; i++) {
@@ -97,7 +92,7 @@ export async function POST(req: Request) {
     const expires =
       body.expiresAt && !Number.isNaN(Date.parse(body.expiresAt))
         ? new Date(body.expiresAt)
-        : defaultExpiresAt();
+        : defaultInvitationExpiresAt();
 
     const db = adminDb();
     const token = await uniqueInviteToken(db);

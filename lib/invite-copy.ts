@@ -19,6 +19,10 @@ export const inviteCopy = {
     acceptedLead:
       "We’re so glad you can celebrate with us. Your details are below.",
     eventHeading: "Event details",
+    eventRsvpHint:
+      "Review the details below, then confirm attendance or decline.",
+    eventDetailsPending:
+      "Event details will appear here once the hosts add them.",
     expiredTitle: "This invitation has expired",
     expiredBody:
       "The RSVP window for this link has closed. If you think this is a mistake, please reach out to the hosts.",
@@ -47,6 +51,10 @@ export const inviteCopy = {
     thankYou: "Terima kasih!",
     acceptedLead: "Senang sekali Anda bisa hadir. Rincian acara ada di bawah.",
     eventHeading: "Detail acara",
+    eventRsvpHint:
+      "Tinjau rincian di bawah, lalu konfirmasi kehadiran atau tolak undangan.",
+    eventDetailsPending:
+      "Rincian acara akan muncul di sini setelah dipasang oleh tuan rumah.",
     expiredTitle: "Undangan ini sudah berakhir",
     expiredBody:
       "Batas konfirmasi untuk tautan ini sudah lewat. Jika ini kesalahan, silakan hubungi kami.",

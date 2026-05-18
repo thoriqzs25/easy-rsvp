@@ -12,11 +12,18 @@ export function getFirebaseAdminApp(): App {
         "Missing FIREBASE_SERVICE_ACCOUNT_KEY — add service account JSON string to env.",
       );
     }
-    const parsed = JSON.parse(raw) as {
+    let parsed: {
       client_email?: string;
       private_key?: string;
       project_id?: string;
     };
+    try {
+      parsed = JSON.parse(raw) as typeof parsed;
+    } catch {
+      throw new Error(
+        "FIREBASE_SERVICE_ACCOUNT_KEY must be valid JSON (one line). Use: jq -c . serviceAccount.json",
+      );
+    }
     app = initializeApp({
       credential: cert({
         clientEmail: parsed.client_email,
