@@ -6,8 +6,11 @@ import { logActivity } from "@/lib/activity";
 export const dynamic = "force-dynamic";
 
 /**
- * Scheduled expiry job. If CRON_SECRET is set, require x-cron-secret or
- * Authorization: Bearer <CRON_SECRET> (Vercel Cron supports the bearer form).
+ * Scheduled expiry job (runs once per day; Vercel cron schedules are in UTC).
+ * Marks pending invitations with expires_at in the past as expired.
+ *
+ * If CRON_SECRET is set, require x-cron-secret or Authorization: Bearer <CRON_SECRET>
+ * (Vercel Cron supports the bearer form).
  */
 export async function POST(req: Request) {
   const secret = process.env.CRON_SECRET;

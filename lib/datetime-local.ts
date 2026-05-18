@@ -57,7 +57,18 @@ export function addDaysEndOfDay(base: Date, days: number): Date {
   return x;
 }
 
-/** Default RSVP expiry: 7 days from now, end of that day (local). */
+/**
+ * Same calendar day in local time, advanced by `days`, at 00:00:00.000 local.
+ * Matches a daily cron at midnight in the same environment TZ (browser vs Vercel UTC).
+ */
+export function addDaysStartOfDay(base: Date, days: number): Date {
+  const x = new Date(base);
+  x.setDate(x.getDate() + days);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+
+/** Default RSVP expiry: 7 calendar days from today at local midnight (start of that day). */
 export function defaultInvitationExpiresAt(): Date {
-  return addDaysEndOfDay(new Date(), 7);
+  return addDaysStartOfDay(new Date(), 7);
 }

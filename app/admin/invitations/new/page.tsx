@@ -150,7 +150,7 @@ export default function NewInvitationPage() {
         </div>
         <div>
           <label className="block text-sm text-stone-600 mb-1">
-            Expires at (default: 7 days from now, 23:59 local — adjustable)
+            Expires at (default: 7 days from today at 00:00 local — adjustable)
           </label>
           <input
             type="datetime-local"

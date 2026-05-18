@@ -67,7 +67,7 @@ npm run lint     # ESLint
 
 ## Deployment notes
 
-- **Vercel:** [`vercel.json`](vercel.json) schedules an hourly hit to `/api/cron/expire`. Set **`CRON_SECRET`** in Vercel project env so the cron request can send `Authorization: Bearer <CRON_SECRET>` (see Vercel cron + secure cron docs).
+- **Vercel:** [`vercel.json`](vercel.json) schedules a **daily** run at **00:00 UTC** to `/api/cron/expire` (fits Hobby cron limits and aligns with default expiry at midnight in the deployment timezone). Set **`CRON_SECRET`** in Vercel project env so the cron request can send `Authorization: Bearer <CRON_SECRET>` (see Vercel cron + secure cron docs).
 - Ensure all **`NEXT_PUBLIC_*`** and **`FIREBASE_SERVICE_ACCOUNT_KEY`** (and optional **`CRON_SECRET`**) are set in the hosting environment.
 
 ---
