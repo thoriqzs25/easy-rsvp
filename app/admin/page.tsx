@@ -7,6 +7,7 @@ import { adminJson } from "@/lib/admin-fetch";
 type Stats = {
   total: number;
   byStatus: Record<string, number>;
+  pendingPlusOneRequests: number;
 };
 
 type ActivityItem = {
@@ -27,6 +28,9 @@ const kindLabel: Record<string, string> = {
   invitation_reopened: "Reopened",
   invitation_page_view: "Page view",
   event_config_updated: "Event details updated",
+  plus_one_requested: "+1 requested",
+  plus_one_approved: "+1 approved",
+  plus_one_rejected: "+1 request declined",
 };
 
 export default function DashboardPage() {
@@ -84,27 +88,47 @@ export default function DashboardPage() {
       {err ? <p className="text-red-600 text-sm">{err}</p> : null}
 
       {stats ? (
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-          {(
-            [
-              ["total", "Total", stats.total],
-              ["accepted", "Accepted", stats.byStatus.accepted],
-              ["pending", "Pending", stats.byStatus.pending],
-              ["declined", "Declined", stats.byStatus.declined],
-              ["expired", "Expired", stats.byStatus.expired],
-              ["revoked", "Revoked", stats.byStatus.revoked],
-            ] as const
-          ).map(([key, label, n]) => (
-            <div
-              key={key}
-              className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
-            >
-              <p className="text-xs uppercase tracking-wide text-stone-500">
-                {label}
-              </p>
-              <p className="text-2xl font-serif text-stone-900 mt-1">{n}</p>
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+            {(
+              [
+                ["total", "Total", stats.total],
+                ["accepted", "Accepted", stats.byStatus.accepted],
+                ["pending", "Pending", stats.byStatus.pending],
+                ["declined", "Declined", stats.byStatus.declined],
+                ["expired", "Expired", stats.byStatus.expired],
+                ["revoked", "Revoked", stats.byStatus.revoked],
+              ] as const
+            ).map(([key, label, n]) => (
+              <div
+                key={key}
+                className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+              >
+                <p className="text-xs uppercase tracking-wide text-stone-500">
+                  {label}
+                </p>
+                <p className="text-2xl font-serif text-stone-900 mt-1">{n}</p>
+              </div>
+            ))}
+          </div>
+          {(stats.pendingPlusOneRequests ?? 0) > 0 ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-4 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-medium text-amber-950">Pending +1 requests</p>
+                <p className="text-sm text-amber-900/85 mt-0.5">
+                  {stats.pendingPlusOneRequests} guest
+                  {stats.pendingPlusOneRequests === 1 ? "" : "s"} asked to
+                  bring a plus-one. Approve or decline from each invitation.
+                </p>
+              </div>
+              <Link
+                href="/admin/invitations?plusOnePending=1"
+                className="inline-flex px-4 py-2 rounded-lg bg-amber-800 text-white text-sm font-medium hover:bg-amber-900"
+              >
+                Review invitations
+              </Link>
             </div>
-          ))}
+          ) : null}
         </div>
       ) : (
         <p className="text-stone-500">Loading stats…</p>

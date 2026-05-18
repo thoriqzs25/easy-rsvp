@@ -7,6 +7,7 @@ import { logActivity } from "@/lib/activity";
 import { toIso } from "@/lib/serialize-invitation";
 import type { InviteLocale } from "@/lib/types";
 import { defaultInvitationExpiresAt } from "@/lib/datetime-local";
+import { readIncludesPlusOne, readPlusOneRequestStatusPublic } from "@/lib/plus-one";
 
 export const dynamic = "force-dynamic";
 
@@ -33,20 +34,31 @@ export async function GET(req: Request) {
     const { searchParams } = new URL(req.url);
     const status = searchParams.get("status") || "";
     const nameQ = (searchParams.get("name") || "").trim().toLowerCase();
+    const plusOnePending = searchParams.get("plusOnePending") === "1";
     const db = adminDb();
-    const snap =
-      status && status !== "all"
-        ? await db
-            .collection("invitations")
-            .where("status", "==", status)
-            .orderBy("created_at", "desc")
-            .limit(100)
-            .get()
-        : await db
-            .collection("invitations")
-            .orderBy("created_at", "desc")
-            .limit(100)
-            .get();
+    let snap;
+    if (plusOnePending) {
+      snap = await db
+        .collection("invitations")
+        .where("status", "==", "pending")
+        .where("plus_one_request_status", "==", "pending")
+        .orderBy("created_at", "desc")
+        .limit(100)
+        .get();
+    } else if (status && status !== "all") {
+      snap = await db
+        .collection("invitations")
+        .where("status", "==", status)
+        .orderBy("created_at", "desc")
+        .limit(100)
+        .get();
+    } else {
+      snap = await db
+        .collection("invitations")
+        .orderBy("created_at", "desc")
+        .limit(100)
+        .get();
+    }
     let rows = snap.docs.map((doc) => {
       const d = doc.data();
       return {
@@ -60,6 +72,8 @@ export async function GET(req: Request) {
         respondedAt: toIso(d.responded_at),
         hasWishes: Boolean(d.wishes && String(d.wishes).trim()),
         createdAt: toIso(d.created_at),
+        includesPlusOne: readIncludesPlusOne(d),
+        plusOneRequestStatus: readPlusOneRequestStatusPublic(d),
       };
     });
     if (nameQ) {
@@ -84,11 +98,13 @@ export async function POST(req: Request) {
       guestPhone?: string | null;
       locale?: InviteLocale;
       expiresAt?: string | null;
+      includesPlusOne?: boolean;
     };
     if (!body.guestName || typeof body.guestName !== "string") {
       return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
     }
     const locale: InviteLocale = body.locale === "id" ? "id" : "en";
+    const includesPlusOne = body.includesPlusOne !== false;
     const expires =
       body.expiresAt && !Number.isNaN(Date.parse(body.expiresAt))
         ? new Date(body.expiresAt)
@@ -101,6 +117,7 @@ export async function POST(req: Request) {
       guest_name: body.guestName.trim(),
       guest_phone: body.guestPhone?.trim() || null,
       locale,
+      includes_plus_one: includesPlusOne,
       status: "pending",
       expires_at: expires,
       responded_at: null,

@@ -5,6 +5,11 @@ import { adminDb } from "@/lib/firebase-admin";
 import { logActivity } from "@/lib/activity";
 import { toIso, effectiveInvitationStatus } from "@/lib/serialize-invitation";
 import type { InviteLocale, InvitationStatus } from "@/lib/types";
+import {
+  readIncludesPlusOne,
+  readPlusOneRequestStatusPublic,
+  plusOneRequestFieldDeletes,
+} from "@/lib/plus-one";
 
 export const dynamic = "force-dynamic";
 
@@ -28,6 +33,8 @@ function serialize(docId: string, d: DocumentData) {
     createdAt: toIso(d.created_at),
     updatedAt: toIso(d.updated_at),
     sharePath: `/rsvp/${d.token}`,
+    includesPlusOne: readIncludesPlusOne(d),
+    plusOneRequestStatus: readPlusOneRequestStatusPublic(d),
   };
 }
 
@@ -75,7 +82,9 @@ export async function PATCH(
           guestName?: string;
           guestPhone?: string | null;
           locale?: InviteLocale;
-        };
+        }
+      | { action: "approve_plus_one" }
+      | { action: "reject_plus_one" };
 
     const ref = adminDb().collection("invitations").doc(id);
     const snap = await ref.get();
@@ -99,6 +108,49 @@ export async function PATCH(
       });
       await logActivity(adminDb(), {
         kind: "invitation_revoked",
+        invitationId: id,
+        guestName: d.guest_name,
+        actorAdminId: auth.admin.uid,
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === "approve_plus_one") {
+      if (d.plus_one_request_status !== "pending") {
+        return NextResponse.json(
+          { error: "NO_PENDING_PLUS_ONE_REQUEST" },
+          { status: 409 },
+        );
+      }
+      await ref.update({
+        includes_plus_one: true,
+        updated_at: FieldValue.serverTimestamp(),
+        ...plusOneRequestFieldDeletes(),
+      });
+      await logActivity(adminDb(), {
+        kind: "plus_one_approved",
+        invitationId: id,
+        guestName: d.guest_name,
+        actorAdminId: auth.admin.uid,
+      });
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === "reject_plus_one") {
+      if (d.plus_one_request_status !== "pending") {
+        return NextResponse.json(
+          { error: "NO_PENDING_PLUS_ONE_REQUEST" },
+          { status: 409 },
+        );
+      }
+      await ref.update({
+        plus_one_request_status: "rejected",
+        plus_one_resolved_at: FieldValue.serverTimestamp(),
+        plus_one_resolved_by: auth.admin.uid,
+        updated_at: FieldValue.serverTimestamp(),
+      });
+      await logActivity(adminDb(), {
+        kind: "plus_one_rejected",
         invitationId: id,
         guestName: d.guest_name,
         actorAdminId: auth.admin.uid,
@@ -155,6 +207,7 @@ export async function PATCH(
         expires_at: newExp,
         responded_at: FieldValue.delete(),
         updated_at: FieldValue.serverTimestamp(),
+        ...plusOneRequestFieldDeletes(),
       };
       if (d.wishes !== undefined && d.wishes !== null) {
         renewPatch.wishes = FieldValue.delete();
@@ -181,6 +234,7 @@ export async function PATCH(
         expires_at: newExp,
         responded_at: FieldValue.delete(),
         updated_at: FieldValue.serverTimestamp(),
+        ...plusOneRequestFieldDeletes(),
       };
       if (d.wishes !== undefined && d.wishes !== null) {
         reopenPatch.wishes = FieldValue.delete();

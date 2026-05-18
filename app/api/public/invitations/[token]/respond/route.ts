@@ -4,6 +4,7 @@ import { adminDb } from "@/lib/firebase-admin";
 import { logActivity } from "@/lib/activity";
 import { effectiveInvitationStatus } from "@/lib/serialize-invitation";
 import type { InvitationStatus } from "@/lib/types";
+import { plusOneRequestFieldDeletes } from "@/lib/plus-one";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +54,7 @@ export async function POST(
         status: "declined",
         responded_at: FieldValue.serverTimestamp(),
         updated_at: FieldValue.serverTimestamp(),
+        ...plusOneRequestFieldDeletes(),
       };
       if (d.wishes !== undefined && d.wishes !== null) {
         declinePatch.wishes = FieldValue.delete();
@@ -73,6 +75,7 @@ export async function POST(
       status: "accepted",
       responded_at: FieldValue.serverTimestamp(),
       updated_at: FieldValue.serverTimestamp(),
+      ...plusOneRequestFieldDeletes(),
     };
     if (wishes) patch.wishes = wishes;
     else patch.wishes = FieldValue.delete();

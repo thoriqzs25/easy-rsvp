@@ -20,6 +20,8 @@ type PublicPayload = {
   effectiveStatus: string;
   expiresAt: string | null;
   wishes: string;
+  includesPlusOne: boolean;
+  plusOneRequestStatus: "none" | "pending" | "rejected";
   event: { lines: Record<InviteLocale, EventLines> } | null;
 };
 
@@ -68,6 +70,8 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState<"main" | "wishes" | "decline_confirm">("main");
   const [wishesDraft, setWishesDraft] = useState("");
+  const [plusOneBusy, setPlusOneBusy] = useState(false);
+  const [plusOneMsg, setPlusOneMsg] = useState("");
 
   const load = useCallback(async () => {
     setErr("");
@@ -79,7 +83,11 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
       }
       if (!res.ok) throw new Error("load failed");
       const j = (await res.json()) as PublicPayload;
-      setData(j);
+      setData({
+        ...j,
+        includesPlusOne: j.includesPlusOne !== false,
+        plusOneRequestStatus: j.plusOneRequestStatus ?? "none",
+      });
     } catch {
       setErr("Could not load invitation.");
     }
@@ -98,6 +106,28 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
   const locale: InviteLocale =
     data && data !== "nf" && data.locale === "id" ? "id" : "en";
   const c = inviteCopy[locale];
+
+  async function requestPlusOne() {
+    setPlusOneBusy(true);
+    setPlusOneMsg("");
+    setErr("");
+    try {
+      const res = await fetch(
+        `/api/public/invitations/${encodeURIComponent(token)}/plus-one-request`,
+        { method: "POST" },
+      );
+      const j = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        throw new Error(j.error || res.statusText);
+      }
+      setPlusOneMsg(c.plusOneRequestSent);
+      await load();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Request failed");
+    } finally {
+      setPlusOneBusy(false);
+    }
+  }
 
   async function respond(action: "accept" | "decline", wishes?: string) {
     setBusy(true);
@@ -161,6 +191,9 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
             {str(c, "greeting", data.guestName)}
           </h1>
           <p className="text-stone-600 mb-8">{c.acceptedLead}</p>
+          {data.includesPlusOne ? (
+            <p className="text-rose-900/75 text-sm mb-6">{c.plusOne}</p>
+          ) : null}
           <h2 className="font-serif text-xl text-stone-800 mb-4">
             {c.eventHeading}
           </h2>
@@ -227,7 +260,46 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
         <h1 className="font-serif text-3xl text-stone-900 mb-2">
           {str(c, "greeting", data.guestName)}
         </h1>
-        <p className="text-rose-900/80 text-sm mb-8">{c.plusOne}</p>
+        <p className="text-rose-900/80 text-sm mb-6">
+          {data.includesPlusOne ? c.plusOne : c.plusOneNone}
+        </p>
+
+        {!data.includesPlusOne && data.plusOneRequestStatus === "pending" ? (
+          <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-950">
+            {c.plusOneRequestPending}
+          </div>
+        ) : null}
+        {!data.includesPlusOne &&
+        (data.plusOneRequestStatus === "none" ||
+          data.plusOneRequestStatus === "rejected") ? (
+          <div className="mb-6 space-y-3">
+            {data.plusOneRequestStatus === "rejected" ? (
+              <div className="rounded-lg border border-stone-300 bg-stone-50 px-4 py-3 space-y-2">
+                <p className="text-sm font-semibold text-stone-900">
+                  {c.plusOneRequestRejectedTitle}
+                </p>
+                <p className="text-sm text-stone-600 leading-relaxed">
+                  {c.plusOneRequestRejectedBody}
+                </p>
+              </div>
+            ) : null}
+            {plusOneMsg ? (
+              <p className="text-sm text-emerald-800">{plusOneMsg}</p>
+            ) : null}
+            <button
+              type="button"
+              disabled={plusOneBusy}
+              onClick={() => void requestPlusOne()}
+              className="w-full sm:w-auto px-4 py-2.5 rounded-xl border-2 border-rose-300 text-rose-900 font-medium hover:bg-rose-50 disabled:opacity-50"
+            >
+              {plusOneBusy
+                ? c.plusOneRequestBusy
+                : data.plusOneRequestStatus === "rejected"
+                  ? c.plusOneRequestAgainBtn
+                  : c.plusOneRequestBtn}
+            </button>
+          </div>
+        ) : null}
 
         <div className="mb-8 pb-8 border-b border-stone-100">
           <h2 className="font-serif text-xl text-stone-800 mb-2">

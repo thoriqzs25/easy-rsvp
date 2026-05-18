@@ -18,7 +18,10 @@ export type ActivityKind =
   | "invitation_renewed"
   | "invitation_reopened"
   | "invitation_page_view"
-  | "event_config_updated";
+  | "event_config_updated"
+  | "plus_one_requested"
+  | "plus_one_approved"
+  | "plus_one_rejected";
 
 export const ROLE_ORDER: Record<AdminRole, number> = {
   viewer: 0,

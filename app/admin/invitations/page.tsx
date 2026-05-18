@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState, useCallback } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useAdminSession } from "@/components/AdminSessionContext";
 import { adminJson } from "@/lib/admin-fetch";
 
@@ -11,23 +12,52 @@ type Row = {
   status: string;
   expiresAt: string | null;
   locale: string;
+  includesPlusOne?: boolean;
+  plusOneRequestStatus?: "none" | "pending" | "rejected";
 };
 
 export default function InvitationsListPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <p className="text-stone-500">Loading…</p>
+        </div>
+      }
+    >
+      <InvitationsListInner />
+    </Suspense>
+  );
+}
+
+function InvitationsListInner() {
+  const searchParams = useSearchParams();
   const session = useAdminSession();
   const canEdit =
     session?.role === "editor" || session?.role === "super_admin";
   const [status, setStatus] = useState<string>("all");
-  const [name, setName] = useState("");
+  const [nameInput, setNameInput] = useState("");
+  const [nameQuery, setNameQuery] = useState("");
+  const [plusOnly, setPlusOnly] = useState(false);
   const [items, setItems] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  useEffect(() => {
+    if (searchParams.get("plusOnePending") === "1") {
+      setPlusOnly(true);
+    }
+  }, [searchParams]);
+
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams();
-      if (status !== "all") qs.set("status", status);
-      if (name.trim()) qs.set("name", name.trim());
+      if (plusOnly) {
+        qs.set("plusOnePending", "1");
+      } else if (status !== "all") {
+        qs.set("status", status);
+      }
+      if (nameQuery.trim()) qs.set("name", nameQuery.trim());
       const r = await adminJson<{ items: Row[] }>(
         `/api/admin/invitations?${qs}`,
       );
@@ -37,12 +67,11 @@ export default function InvitationsListPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [plusOnly, status, nameQuery]);
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- name applied only via Search
-  }, [status]);
+  }, [load]);
 
   return (
     <div className="space-y-6">
@@ -66,8 +95,9 @@ export default function InvitationsListPage() {
           <label className="block text-xs text-stone-500 mb-1">Status</label>
           <select
             value={status}
+            disabled={plusOnly}
             onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border border-stone-300 px-2 py-2 text-sm"
+            className="rounded-lg border border-stone-300 px-2 py-2 text-sm disabled:opacity-50"
           >
             <option value="all">All</option>
             <option value="pending">Pending</option>
@@ -77,18 +107,30 @@ export default function InvitationsListPage() {
             <option value="revoked">Revoked</option>
           </select>
         </div>
+        <label className="flex items-center gap-2 text-sm text-stone-700 pb-2 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={plusOnly}
+            onChange={(e) => {
+              setPlusOnly(e.target.checked);
+              if (e.target.checked) setStatus("all");
+            }}
+            className="rounded border-stone-400"
+          />
+          Pending +1 requests only
+        </label>
         <div>
           <label className="block text-xs text-stone-500 mb-1">Name search</label>
           <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={nameInput}
+            onChange={(e) => setNameInput(e.target.value)}
             className="rounded-lg border border-stone-300 px-2 py-2 text-sm"
             placeholder="Guest name"
           />
         </div>
         <button
           type="button"
-          onClick={() => load()}
+          onClick={() => setNameQuery(nameInput.trim())}
           className="px-3 py-2 rounded-lg border border-stone-300 text-sm hover:bg-stone-50"
         >
           Search
@@ -104,6 +146,7 @@ export default function InvitationsListPage() {
               <tr>
                 <th className="px-4 py-3 font-medium">Guest</th>
                 <th className="px-4 py-3 font-medium">Status</th>
+                <th className="px-4 py-3 font-medium">+1</th>
                 <th className="px-4 py-3 font-medium">Locale</th>
                 <th className="px-4 py-3 font-medium">Expires</th>
                 <th className="px-4 py-3 font-medium" />
@@ -116,6 +159,17 @@ export default function InvitationsListPage() {
                     {row.guestName}
                   </td>
                   <td className="px-4 py-3 text-stone-700">{row.status}</td>
+                  <td className="px-4 py-3 text-stone-600 text-xs">
+                    {row.plusOneRequestStatus === "pending" ? (
+                      <span className="inline-flex px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 font-medium">
+                        +1 pending
+                      </span>
+                    ) : row.includesPlusOne === false ? (
+                      <span className="text-stone-500">No +1</span>
+                    ) : (
+                      <span className="text-stone-500">Yes</span>
+                    )}
+                  </td>
                   <td className="px-4 py-3 uppercase text-stone-500">
                     {row.locale}
                   </td>

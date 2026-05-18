@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { adminDb } from "@/lib/firebase-admin";
 import { toIso, effectiveInvitationStatus } from "@/lib/serialize-invitation";
+import { readIncludesPlusOne, readPlusOneRequestStatusPublic } from "@/lib/plus-one";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,8 @@ export async function GET(
       expiresAt: toIso(d.expires_at),
       wishes: d.wishes ?? "",
       respondedAt: toIso(d.responded_at),
+      includesPlusOne: readIncludesPlusOne(d),
+      plusOneRequestStatus: readPlusOneRequestStatusPublic(d),
       event: eventData?.lines
         ? { lines: eventData.lines, updatedAt: toIso(eventData.updated_at) }
         : null,

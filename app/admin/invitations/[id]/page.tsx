@@ -23,6 +23,8 @@ type Inv = {
   expiresAt: string | null;
   respondedAt: string | null;
   sharePath: string;
+  includesPlusOne: boolean;
+  plusOneRequestStatus: "none" | "pending" | "rejected";
 };
 
 export default function InvitationDetailPage({
@@ -70,7 +72,9 @@ export default function InvitationDetailPage({
           guestName?: string;
           guestPhone?: string | null;
           locale?: InviteLocale;
-        },
+        }
+      | { action: "approve_plus_one" }
+      | { action: "reject_plus_one" },
   ) {
     setMsg("");
     try {
@@ -116,7 +120,50 @@ export default function InvitationDetailPage({
             </>
           ) : null}
         </p>
+        <p className="text-sm text-stone-600 mt-2">
+          Plus-one:{" "}
+          <strong className="text-stone-800">
+            {inv.includesPlusOne ? "Yes" : "No"}
+          </strong>
+          {inv.plusOneRequestStatus === "pending" ? (
+            <span className="ml-2 text-amber-800 font-medium">
+              · +1 request pending
+            </span>
+          ) : inv.plusOneRequestStatus === "rejected" ? (
+            <span className="ml-2 text-stone-500">· +1 request declined</span>
+          ) : null}
+        </p>
       </div>
+
+      {inv.plusOneRequestStatus === "pending" ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-4 space-y-3">
+          <p className="text-sm text-amber-950 font-medium">
+            This guest asked to bring a plus-one.
+          </p>
+          {canEdit ? (
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800"
+                onClick={() => void patch({ action: "approve_plus_one" })}
+              >
+                Approve +1
+              </button>
+              <button
+                type="button"
+                className="px-4 py-2 rounded-lg border border-amber-800/40 text-amber-950 text-sm hover:bg-amber-100/80"
+                onClick={() => void patch({ action: "reject_plus_one" })}
+              >
+                Decline request
+              </button>
+            </div>
+          ) : (
+            <p className="text-xs text-amber-900/80">
+              Only editors can approve or decline.
+            </p>
+          )}
+        </div>
+      ) : null}
 
       <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-2">
         <p className="text-xs uppercase text-stone-500">Share link</p>

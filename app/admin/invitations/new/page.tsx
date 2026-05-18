@@ -24,6 +24,7 @@ export default function NewInvitationPage() {
   const [guestName, setGuestName] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
   const [locale, setLocale] = useState<InviteLocale>("en");
+  const [includesPlusOne, setIncludesPlusOne] = useState(true);
   const [expiresAt, setExpiresAt] = useState(toDatetimeLocalValue(defaultExp));
   const [sharePath, setSharePath] = useState<string | null>(null);
   const [err, setErr] = useState("");
@@ -45,6 +46,7 @@ export default function NewInvitationPage() {
             guestName: guestName.trim(),
             guestPhone: guestPhone.trim() || null,
             locale,
+            includesPlusOne,
             expiresAt: iso,
           }),
         },
@@ -126,6 +128,25 @@ export default function NewInvitationPage() {
             <option value="en">English</option>
             <option value="id">Indonesian</option>
           </select>
+        </div>
+        <div>
+          <label className="flex items-start gap-3 cursor-pointer rounded-lg border border-stone-200 bg-stone-50/50 px-3 py-3">
+            <input
+              type="checkbox"
+              checked={includesPlusOne}
+              onChange={(e) => setIncludesPlusOne(e.target.checked)}
+              className="mt-1 rounded border-stone-400"
+            />
+            <span>
+              <span className="block text-sm font-medium text-stone-800">
+                Guest may bring a plus-one (+1)
+              </span>
+              <span className="block text-xs text-stone-500 mt-1">
+                Turn off for single-seat invitations. Guests can ask for a +1 from
+                their RSVP page when this is off.
+              </span>
+            </span>
+          </label>
         </div>
         <div>
           <label className="block text-sm text-stone-600 mb-1">

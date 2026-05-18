@@ -36,7 +36,15 @@ export async function GET(req: Request) {
 
     const total = STATUSES.reduce((sum, s) => sum + byStatus[s], 0);
 
-    return NextResponse.json({ total, byStatus });
+    const plusOneSnap = await db
+      .collection("invitations")
+      .where("status", "==", "pending")
+      .where("plus_one_request_status", "==", "pending")
+      .count()
+      .get();
+    const pendingPlusOneRequests = plusOneSnap.data().count;
+
+    return NextResponse.json({ total, byStatus, pendingPlusOneRequests });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });

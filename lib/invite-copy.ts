@@ -5,6 +5,17 @@ export const inviteCopy = {
     metaTitle: "You’re invited",
     greeting: (name: string) => `Dear ${name},`,
     plusOne: "Your invitation includes a +1.",
+    plusOneNone:
+      "This invitation is for you only (no +1). You can ask the hosts to add a guest before you respond.",
+    plusOneRequestBtn: "Request to bring a guest (+1)",
+    plusOneRequestPending:
+      "You’ve asked to bring a guest. The hosts will review your request.",
+    plusOneRequestRejectedTitle: "Your request to bring a guest (+1) was declined.",
+    plusOneRequestRejectedBody:
+      "You can try sending a new request below, or reach out to the event hosts directly if you’d prefer to discuss it.",
+    plusOneRequestAgainBtn: "Request again (+1)",
+    plusOneRequestSent: "Request sent. The hosts will review it soon.",
+    plusOneRequestBusy: "Sending…",
     loading: "Loading your invitation…",
     confirmBtn: "Confirm attendance",
     declineBtn: "Decline",
@@ -38,6 +49,17 @@ export const inviteCopy = {
     metaTitle: "Undangan",
     greeting: (name: string) => `Kepada ${name},`,
     plusOne: "Undangan ini mencakup +1.",
+    plusOneNone:
+      "Undangan ini hanya untuk Anda (tanpa +1). Anda bisa meminta tuan rumah menambahkan tamu sebelum merespons.",
+    plusOneRequestBtn: "Minta bawa tamu (+1)",
+    plusOneRequestPending:
+      "Anda sudah meminta membawa tamu. Tuan rumah akan meninjau.",
+    plusOneRequestRejectedTitle: "Permintaan Anda untuk membawa tamu (+1) ditolak.",
+    plusOneRequestRejectedBody:
+      "Anda boleh mencoba mengirim permintaan baru di bawah, atau menghubungi tuan rumah acara secara langsung jika ingin membicarakannya.",
+    plusOneRequestAgainBtn: "Minta lagi (+1)",
+    plusOneRequestSent: "Permintaan terkirim. Tuan rumah akan meninjaunya di dasbor mereka.",
+    plusOneRequestBusy: "Mengirim…",
     loading: "Memuat undangan…",
     confirmBtn: "Konfirmasi hadir",
     declineBtn: "Tidak dapat hadir",
