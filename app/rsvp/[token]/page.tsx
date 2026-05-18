@@ -2,6 +2,10 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { inviteCopy } from "@/lib/invite-copy";
+import {
+  formatRsvpDeadlineLong,
+  formatRsvpTimeRemaining,
+} from "@/lib/datetime-local";
 import type { InviteLocale } from "@/lib/types";
 
 type EventLines = {
@@ -252,6 +256,15 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
   }
 
   const evPending = data.event?.lines?.[locale];
+  const expiresAtGuest = data.expiresAt;
+  const deadlineLong =
+    expiresAtGuest != null && expiresAtGuest !== ""
+      ? formatRsvpDeadlineLong(expiresAtGuest, locale)
+      : null;
+  const deadlineRelative =
+    expiresAtGuest != null && expiresAtGuest !== ""
+      ? formatRsvpTimeRemaining(expiresAtGuest, locale)
+      : null;
 
   /* pending */
   return (
@@ -298,6 +311,29 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
                   ? c.plusOneRequestAgainBtn
                   : c.plusOneRequestBtn}
             </button>
+          </div>
+        ) : null}
+
+        {deadlineLong ? (
+          <div className="mb-6 rounded-lg border border-sky-200 bg-sky-50/90 px-4 py-3 space-y-2 text-sm">
+            <p className="text-xs font-semibold uppercase tracking-wide text-sky-900/90">
+              {c.rsvpDeadlineTitle}
+            </p>
+            <p className="text-sky-950">
+              <span className="font-medium text-sky-900">
+                {c.rsvpDeadlineRespondBy}:{" "}
+              </span>
+              {deadlineLong}
+            </p>
+            {deadlineRelative ? (
+              <p className="text-sky-900/90">
+                <span className="font-medium">{c.rsvpDeadlineTimeLeft}: </span>
+                {deadlineRelative}
+              </p>
+            ) : null}
+            <p className="text-sky-900/85 leading-relaxed">
+              {c.rsvpDeadlinePolicy}
+            </p>
           </div>
         ) : null}
 

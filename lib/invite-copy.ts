@@ -32,6 +32,11 @@ export const inviteCopy = {
     eventHeading: "Event details",
     eventRsvpHint:
       "Review the details below, then confirm attendance or decline.",
+    rsvpDeadlineTitle: "RSVP deadline",
+    rsvpDeadlineRespondBy: "Respond by",
+    rsvpDeadlineTimeLeft: "Time remaining",
+    rsvpDeadlinePolicy:
+      "Please accept or decline before this time. If you don’t respond in time, your place may be offered to another guest.",
     eventDetailsPending:
       "Event details will appear here once the hosts add them.",
     expiredTitle: "This invitation has expired",
@@ -75,6 +80,11 @@ export const inviteCopy = {
     eventHeading: "Detail acara",
     eventRsvpHint:
       "Tinjau rincian di bawah, lalu konfirmasi kehadiran atau tolak undangan.",
+    rsvpDeadlineTitle: "Batas konfirmasi RSVP",
+    rsvpDeadlineRespondBy: "Konfirmasi sebelum",
+    rsvpDeadlineTimeLeft: "Sisa waktu",
+    rsvpDeadlinePolicy:
+      "Silakan konfirmasi hadir atau tolak sebelum waktu ini. Jika tidak ada tanggapan tepat waktu, tempat Anda dapat ditawarkan ke tamu lain.",
     eventDetailsPending:
       "Rincian acara akan muncul di sini setelah dipasang oleh tuan rumah.",
     expiredTitle: "Undangan ini sudah berakhir",

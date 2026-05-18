@@ -1,5 +1,42 @@
+import type { InviteLocale } from "./types";
+
 function pad(n: number) {
   return n.toString().padStart(2, "0");
+}
+
+const RSVP_DISPLAY_LOCALE: Record<InviteLocale, string> = {
+  en: "en-US",
+  id: "id-ID",
+};
+
+/** Guest-facing deadline (absolute), in the invitation page language. */
+export function formatRsvpDeadlineLong(iso: string, locale: InviteLocale): string {
+  return new Date(iso).toLocaleString(RSVP_DISPLAY_LOCALE[locale], {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** Relative time until expiry, or null if already passed. */
+export function formatRsvpTimeRemaining(
+  iso: string,
+  locale: InviteLocale,
+): string | null {
+  const ms = new Date(iso).getTime() - Date.now();
+  if (ms <= 0) return null;
+  const rtf = new Intl.RelativeTimeFormat(locale === "id" ? "id" : "en", {
+    numeric: "auto",
+  });
+  const days = Math.floor(ms / (24 * 60 * 60 * 1000));
+  if (days >= 1) return rtf.format(days, "day");
+  const hours = Math.floor(ms / (60 * 60 * 1000));
+  if (hours >= 1) return rtf.format(hours, "hour");
+  const minutes = Math.max(1, Math.ceil(ms / (60 * 1000)));
+  return rtf.format(minutes, "minute");
 }
 
 export function toDatetimeLocalValue(d: Date) {
