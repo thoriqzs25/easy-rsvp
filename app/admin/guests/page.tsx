@@ -52,6 +52,7 @@ export default function GuestsPage() {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const fuseRef = useRef<Fuse<Guest> | null>(null);
+  const tableRef = useRef<HTMLTableElement>(null);
 
   // Expiry defaults to +7 days at local midnight
   const [expiryInput, setExpiryInput] = useState(toDatetimeLocalValue(defaultInvitationExpiresAt()));
@@ -254,7 +255,10 @@ export default function GuestsPage() {
     }
   };
 
-  // Drag & drop
+  // Drag & drop (desktop HTML5 + mobile touch)
+  const [touchDragId, setTouchDragId] = useState<string | null>(null);
+  const [touchOverId, setTouchOverId] = useState<string | null>(null);
+
   const onDragStart = (e: React.DragEvent, id: string) => {
     setDraggingId(id);
     e.dataTransfer.effectAllowed = "move";
@@ -266,29 +270,62 @@ export default function GuestsPage() {
     e.dataTransfer.dropEffect = "move";
   };
 
-  const onDrop = (e: React.DragEvent, targetId: string) => {
-    e.preventDefault();
-    const draggedId = e.dataTransfer.getData("text/plain");
-    if (!draggedId || draggedId === targetId) return;
-
+  const doReorder = (draggedId: string, targetId: string) => {
+    if (draggedId === targetId) return;
     const reordered = [...rawItems];
     const fromIndex = reordered.findIndex((g) => g.id === draggedId);
     const toIndex = reordered.findIndex((g) => g.id === targetId);
     if (fromIndex < 0 || toIndex < 0) return;
-
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
-
     setRawItems(reordered);
     setDraggingId(null);
-
-    // Persist new priority order
     void adminJson("/api/admin/guests/reorder", {
       method: "POST",
       body: JSON.stringify({ ids: reordered.map((g) => g.id) }),
     }).catch(() => {
       setErrorMsg("Reorder failed — try again");
     });
+  };
+
+  const onDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    const draggedId = e.dataTransfer.getData("text/plain");
+    if (draggedId) doReorder(draggedId, targetId);
+  };
+
+  // Mobile touch drag
+  const onTouchStartHandle = (e: React.TouchEvent, id: string) => {
+    if (sortBy !== "priority") return;
+    // prevent scroll while dragging the handle
+    (e.currentTarget as HTMLElement).style.touchAction = "none";
+    setTouchDragId(id);
+    setDraggingId(id);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!touchDragId || !tableRef.current) return;
+    const touch = e.touches[0];
+    const rows = tableRef.current.querySelectorAll("tbody tr");
+    for (const row of rows) {
+      const rect = row.getBoundingClientRect();
+      if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+        const id = row.getAttribute("data-id");
+        if (id && id !== touchDragId) {
+          setTouchOverId(id);
+        }
+        break;
+      }
+    }
+  };
+
+  const onTouchEnd = () => {
+    if (touchDragId && touchOverId) {
+      doReorder(touchDragId, touchOverId);
+    }
+    setTouchDragId(null);
+    setTouchOverId(null);
+    setDraggingId(null);
   };
 
   const selectedDrafts = useMemo(
@@ -410,7 +447,13 @@ export default function GuestsPage() {
         <p className="text-stone-500">Loading…</p>
       ) : (
         <div className="rounded-xl border border-stone-200 bg-white overflow-hidden">
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+            <table
+              ref={tableRef}
+              className="w-full text-sm min-w-[640px]"
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+            >
             <thead className="bg-stone-50 text-left text-stone-600">
               <tr>
                 <th className="px-3 py-3 w-10">
@@ -433,16 +476,21 @@ export default function GuestsPage() {
             <tbody className="divide-y divide-stone-100">
               {items.map((row) => {
                 const isDragOverTarget = draggingId && draggingId !== row.id;
+                const isTouchDrag = touchDragId === row.id;
+                const isTouchOver = touchOverId === row.id;
                 return (
                   <tr
                     key={row.id}
+                    data-id={row.id}
                     draggable={sortBy === "priority"}
                     onDragStart={(e) => onDragStart(e, row.id)}
                     onDragOver={onDragOver}
                     onDrop={(e) => onDrop(e, row.id)}
                     className={`${
                       isDragOverTarget ? "bg-stone-100" : "hover:bg-stone-50/80"
-                    } ${sortBy === "priority" ? "cursor-move" : ""}`}
+                    } ${sortBy === "priority" ? "cursor-move" : ""} ${
+                      isTouchDrag ? "opacity-50" : ""
+                    } ${isTouchOver ? "bg-emerald-50 border-emerald-200" : ""}`}
                   >
                     <td className="px-3 py-3">
                       <input
@@ -452,7 +500,11 @@ export default function GuestsPage() {
                         className="rounded border-stone-400"
                       />
                     </td>
-                    <td className="px-3 py-3 text-stone-400 text-xs select-none">
+                    <td
+                      className="px-3 py-3 text-stone-400 text-xs select-none"
+                      onTouchStart={(e) => onTouchStartHandle(e, row.id)}
+                      style={{ touchAction: sortBy === "priority" ? "none" : "auto" }}
+                    >
                       {sortBy === "priority" ? "⋮⋮" : ""}
                     </td>
                     <td className="px-3 py-3">
@@ -572,6 +624,7 @@ export default function GuestsPage() {
               {filterName || filterStatuses.length > 0 ? " Try clearing filters." : ""}
             </p>
           )}
+          </div>
         </div>
       )}
 
