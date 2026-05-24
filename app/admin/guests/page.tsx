@@ -49,7 +49,6 @@ export default function GuestsPage() {
   const [errorMsg, setErrorMsg] = useState("");
   const [generating, setGenerating] = useState(false);
   const [renewing, setRenewing] = useState(false);
-  const [draggingId, setDraggingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const fuseRef = useRef<Fuse<Guest> | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -299,7 +298,9 @@ export default function GuestsPage() {
     if (fromIndex < 0 || toIndex < 0) return;
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
-    setRawItems(reordered);
+    // Optimistically assign new priorities so the priority sort keeps this order
+    const withPriority = reordered.map((g, i) => ({ ...g, priority: i }));
+    setRawItems(withPriority);
     void adminJson("/api/admin/guests/reorder", {
       method: "POST",
       body: JSON.stringify({ ids: reordered.map((g) => g.id) }),
@@ -314,6 +315,7 @@ export default function GuestsPage() {
     const rowEl = rowRefs.current.get(id);
     if (!rowEl) return;
 
+    e.preventDefault();
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
 
     const rect = rowEl.getBoundingClientRect();
@@ -328,6 +330,7 @@ export default function GuestsPage() {
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!dragId) return;
+    e.preventDefault();
 
     if (ghostRef.current) {
       ghostRef.current.style.top = `${e.clientY - ghostRef.current.offsetHeight / 2}px`;
@@ -352,12 +355,16 @@ export default function GuestsPage() {
       ghostRef.current = null;
     }
 
-    const target = document.elementFromPoint(e.clientX, e.clientY);
-    const overRow = target?.closest("[data-id]") as HTMLElement | null;
-    const overId = overRow?.getAttribute("data-id") ?? null;
+    // Use the dragOverId we tracked during pointermove instead of elementFromPoint
+    // (more reliable on iOS where the hit-test tree may lag)
+    if (dragOverId && dragOverId !== dragId) {
+      doReorder(dragId, dragOverId);
+    }
 
-    if (overId && overId !== dragId) {
-      doReorder(dragId, overId);
+    try {
+      (e.currentTarget as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {
+      // ignore
     }
 
     setDragId(null);
@@ -538,7 +545,7 @@ export default function GuestsPage() {
                     >
                       {sortBy === "priority" ? (
                         <span
-                          className="inline-block px-2 py-1 text-lg leading-none cursor-grab active:cursor-grabbing"
+                          className="inline-block px-2 py-1 text-lg leading-none cursor-grab active:cursor-grabbing touch-none"
                           onPointerDown={(e) => handlePointerDown(e, row.id)}
                           onPointerMove={handlePointerMove}
                           onPointerUp={handlePointerUp}
