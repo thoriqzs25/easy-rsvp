@@ -32,33 +32,46 @@ export async function GET(req: Request) {
 
   try {
     const { searchParams } = new URL(req.url);
-    const status = searchParams.get("status") || "";
+    const statusParam = searchParams.get("status") || "";
     const nameQ = (searchParams.get("name") || "").trim().toLowerCase();
     const plusOnePending = searchParams.get("plusOnePending") === "1";
+    const includeDrafts = searchParams.get("includeDrafts") === "1";
+    const sortBy = searchParams.get("sortBy") || "priority";
+    const filterStatus = searchParams.get("filterStatus") || "";
+    const filterName = (searchParams.get("filterName") || "").trim().toLowerCase();
     const db = adminDb();
     let snap;
+
     if (plusOnePending) {
       snap = await db
         .collection("invitations")
         .where("status", "==", "pending")
         .where("plus_one_request_status", "==", "pending")
         .orderBy("created_at", "desc")
-        .limit(100)
+        .limit(200)
         .get();
-    } else if (status && status !== "all") {
+    } else if (statusParam && statusParam !== "all") {
       snap = await db
         .collection("invitations")
-        .where("status", "==", status)
+        .where("status", "==", statusParam)
         .orderBy("created_at", "desc")
-        .limit(100)
+        .limit(200)
+        .get();
+    } else if (includeDrafts) {
+      // For guest list page, fetch all docs (drafts + invited)
+      snap = await db
+        .collection("invitations")
+        .orderBy("priority", "asc")
+        .limit(500)
         .get();
     } else {
       snap = await db
         .collection("invitations")
         .orderBy("created_at", "desc")
-        .limit(100)
+        .limit(200)
         .get();
     }
+
     let rows = snap.docs.map((doc) => {
       const d = doc.data();
       return {
@@ -68,6 +81,8 @@ export async function GET(req: Request) {
         guestPhone: d.guest_phone ?? null,
         locale: d.locale,
         status: d.status,
+        priority: d.priority ?? 0,
+        allowPlusOne: d.allow_plus_one !== false,
         expiresAt: toIso(d.expires_at),
         respondedAt: toIso(d.responded_at),
         hasWishes: Boolean(d.wishes && String(d.wishes).trim()),
@@ -76,9 +91,46 @@ export async function GET(req: Request) {
         plusOneRequestStatus: readPlusOneRequestStatusPublic(d),
       };
     });
+
     if (nameQ) {
       rows = rows.filter((r) => r.guestName.toLowerCase().includes(nameQ));
     }
+
+    if (includeDrafts) {
+      // client-side filtering for guest list
+      if (filterStatus) {
+        const statuses = filterStatus.split(",").filter(Boolean);
+        if (statuses.length > 0) {
+          rows = rows.filter((r) => statuses.includes(r.status));
+        }
+      }
+      if (filterName) {
+        rows = rows.filter((r) =>
+          r.guestName.toLowerCase().includes(filterName),
+        );
+      }
+      // server-side sortBy for guest list
+      if (sortBy === "name") {
+        rows.sort((a, b) => a.guestName.localeCompare(b.guestName));
+      } else if (sortBy === "status") {
+        const order = ["accepted", "pending", "expired", "declined", "revoked", "draft"];
+        rows.sort((a, b) => {
+          const ai = order.indexOf(a.status);
+          const bi = order.indexOf(b.status);
+          if (ai !== bi) return ai - bi;
+          return a.guestName.localeCompare(b.guestName);
+        });
+      } else if (sortBy === "createdAt") {
+        rows.sort((a, b) => {
+          const at = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+          const bt = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+          if (at !== bt) return at - bt;
+          return a.guestName.localeCompare(b.guestName);
+        });
+      }
+      // default sortBy === "priority" already handled by Firestore orderBy
+    }
+
     return NextResponse.json({ items: rows });
   } catch (e) {
     console.error(e);

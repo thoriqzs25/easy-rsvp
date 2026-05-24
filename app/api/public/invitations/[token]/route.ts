@@ -22,8 +22,11 @@ export async function GET(
     }
     const doc = snap.docs[0]!;
     const d = doc.data();
-    const expiresAt = d.expires_at?.toDate?.() ?? null;
     const status = d.status as string;
+    if (status === "draft") {
+      return NextResponse.json({ error: "INVITATION_NOT_FOUND" }, { status: 404 });
+    }
+    const expiresAt = d.expires_at?.toDate?.() ?? null;
     const effective = effectiveInvitationStatus(status, expiresAt);
 
     const eventSnap = await db.collection("event_config").doc("current").get();
