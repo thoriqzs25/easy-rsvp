@@ -528,7 +528,7 @@ export default function GuestsPage() {
           <div className="overflow-x-auto">
             <table
               ref={tableRef}
-              className="w-full text-sm min-w-[900px]"
+              className="w-full text-sm min-w-[820px]"
             >
             <thead className="bg-stone-50 text-left text-stone-600">
               <tr>
@@ -542,8 +542,8 @@ export default function GuestsPage() {
                   />
                 </th>
                 <th className="px-3 py-3 w-8" />
-                <th className="px-3 py-3 min-w-[200px] font-medium">Name</th>
-                <th className="px-3 py-3 min-w-[160px] font-medium">Phone</th>
+                <th className="px-3 py-3 min-w-[130px] font-medium">Name</th>
+                <th className="px-3 py-3 min-w-[140px] font-medium">Phone</th>
                 <th className="px-3 py-3 font-medium">Locale</th>
                 <th className="px-3 py-3 font-medium">+1</th>
                 <th className="px-3 py-3 font-medium">Status</th>
@@ -596,7 +596,7 @@ export default function GuestsPage() {
                         ""
                       )}
                     </td>
-                    <td className="px-3 py-3 min-w-[200px]">
+                    <td className="px-3 py-3 min-w-[130px]">
                       <div className="flex items-center gap-2">
                         <span
                           className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -617,7 +617,7 @@ export default function GuestsPage() {
                         />
                       </div>
                     </td>
-                    <td className="px-3 py-3 min-w-[160px]">
+                    <td className="px-3 py-3 min-w-[140px]">
                       <input
                         value={row.guestPhone ?? ""}
                         onChange={(e) =>
