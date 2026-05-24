@@ -63,6 +63,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               <Link href="/admin" className="hover:text-rose-800">
                 Dashboard
               </Link>
+              <Link href="/admin/guests" className="hover:text-rose-800">
+                Guests
+              </Link>
               <Link href="/admin/invitations" className="hover:text-rose-800">
                 Invitations
               </Link>

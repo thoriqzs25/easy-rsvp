@@ -165,23 +165,31 @@ export default function InvitationDetailPage({
         </div>
       ) : null}
 
-      <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-2">
-        <p className="text-xs uppercase text-stone-500">Share link</p>
-        <div className="flex gap-2 flex-wrap">
-          <input
-            readOnly
-            value={full}
-            className="flex-1 min-w-0 rounded border border-stone-200 px-2 py-1 text-sm"
-          />
-          <button
-            type="button"
-            className="text-sm px-2 py-1 rounded bg-stone-800 text-white"
-            onClick={() => navigator.clipboard.writeText(full)}
-          >
-            Copy
-          </button>
+      {inv.status === "draft" ? (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/90 p-4">
+          <p className="text-sm text-amber-950">
+            This is a draft. Generate the invitation from the Guest list to create a shareable link.
+          </p>
         </div>
-      </div>
+      ) : (
+        <div className="rounded-xl border border-stone-200 bg-white p-4 space-y-2">
+          <p className="text-xs uppercase text-stone-500">Share link</p>
+          <div className="flex gap-2 flex-wrap">
+            <input
+              readOnly
+              value={full}
+              className="flex-1 min-w-0 rounded border border-stone-200 px-2 py-1 text-sm"
+            />
+            <button
+              type="button"
+              className="text-sm px-2 py-1 rounded bg-stone-800 text-white"
+              onClick={() => navigator.clipboard.writeText(full)}
+            >
+              Copy
+            </button>
+          </div>
+        </div>
+      )}
 
       {inv.wishes ? (
         <div>

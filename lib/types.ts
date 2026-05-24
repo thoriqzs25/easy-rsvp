@@ -1,4 +1,5 @@
 export type InvitationStatus =
+  | "draft"
   | "pending"
   | "accepted"
   | "declined"
