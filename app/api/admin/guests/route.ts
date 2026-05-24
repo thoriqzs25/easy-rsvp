@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { FieldValue, type Firestore } from "firebase-admin/firestore";
+import { FieldValue, type Firestore, type DocumentReference } from "firebase-admin/firestore";
 import { requireAdmin } from "@/lib/auth-api";
 import { adminDb } from "@/lib/firebase-admin";
 import { logActivity } from "@/lib/activity";
@@ -17,6 +17,23 @@ async function getNextPriority(db: Firestore): Promise<number> {
   if (snap.empty) return 1;
   const highest = snap.docs[0].data().priority ?? 0;
   return (typeof highest === "number" ? highest : 0) + 1;
+}
+
+function makeGuestResponse(docId: string, d: Record<string, unknown>) {
+  return {
+    id: docId,
+    token: (d.token as string | null) ?? null,
+    guestName: d.guest_name as string,
+    guestPhone: (d.guest_phone as string | null) ?? null,
+    locale: d.locale as string,
+    status: d.status as string,
+    priority: (d.priority as number) ?? 0,
+    allowPlusOne: (d.allow_plus_one as boolean) !== false,
+    expiresAt: toIso(d.expires_at as Parameters<typeof toIso>[0]),
+    respondedAt: toIso(d.responded_at as Parameters<typeof toIso>[0]),
+    createdAt: toIso(d.created_at as Parameters<typeof toIso>[0]),
+    updatedAt: toIso(d.updated_at as Parameters<typeof toIso>[0]),
+  };
 }
 
 export async function GET(req: Request) {
@@ -40,20 +57,7 @@ export async function GET(req: Request) {
 
     let rows = snap.docs.map((doc) => {
       const d = doc.data();
-      return {
-        id: doc.id,
-        token: d.token ?? null,
-        guestName: d.guest_name,
-        guestPhone: d.guest_phone ?? null,
-        locale: d.locale,
-        status: d.status,
-        priority: d.priority ?? 0,
-        allowPlusOne: d.allow_plus_one !== false,
-        expiresAt: toIso(d.expires_at),
-        respondedAt: toIso(d.responded_at),
-        createdAt: toIso(d.created_at),
-        updatedAt: toIso(d.updated_at),
-      };
+      return makeGuestResponse(doc.id, d);
     });
 
     // client-side filtering
@@ -116,15 +120,71 @@ export async function POST(req: Request) {
       guestPhone?: string | null;
       locale?: InviteLocale;
       allowPlusOne?: boolean;
+      items?: Array<{
+        guestName?: string;
+        guestPhone?: string | null;
+        locale?: InviteLocale;
+        allowPlusOne?: boolean;
+      }>;
     };
 
+    const db = adminDb();
+    const locale: InviteLocale = body.locale === "id" ? "id" : "en";
+    const allowPlusOne = body.allowPlusOne !== false;
+
+    // BULK: items array
+    if (Array.isArray(body.items) && body.items.length > 0) {
+      const validItems = body.items
+        .map((it) => (it.guestName ?? "").trim())
+        .filter((name) => name.length > 0);
+
+      if (validItems.length === 0) {
+        return NextResponse.json({ error: "INVALID_NAME" }, { status: 400 });
+      }
+
+      let nextPriority = await getNextPriority(db);
+      const batch = db.batch();
+      const refs: DocumentReference[] = [];
+
+      for (const name of validItems) {
+        const ref = db.collection("invitations").doc();
+        batch.set(ref, {
+          guest_name: name,
+          guest_phone: null,
+          locale,
+          allow_plus_one: allowPlusOne,
+          status: "draft",
+          priority: nextPriority++,
+          token: null,
+          expires_at: null,
+          responded_at: null,
+          created_by: auth.admin.uid,
+          created_at: FieldValue.serverTimestamp(),
+          updated_at: FieldValue.serverTimestamp(),
+        });
+        refs.push(ref);
+      }
+
+      await batch.commit();
+
+      // Read back created docs
+      const created = await Promise.all(refs.map((r) => r.get()));
+      const guests = created.map((snap) => makeGuestResponse(snap.id, snap.data()!));
+
+      await logActivity(db, {
+        kind: "guests_bulk_added",
+        actorAdminId: auth.admin.uid,
+        metadata: { count: guests.length },
+      });
+
+      return NextResponse.json({ items: guests });
+    }
+
+    // SINGLE
     if (!body.guestName || typeof body.guestName !== "string" || !body.guestName.trim()) {
       return NextResponse.json({ error: "INVALID_NAME" }, { status: 400 });
     }
 
-    const locale: InviteLocale = body.locale === "id" ? "id" : "en";
-    const allowPlusOne = body.allowPlusOne !== false;
-    const db = adminDb();
     const priority = await getNextPriority(db);
 
     const ref = await db.collection("invitations").add({
@@ -143,18 +203,16 @@ export async function POST(req: Request) {
     });
 
     const created = await ref.get();
-    const d = created.data()!;
+    const guest = makeGuestResponse(ref.id, created.data()!);
 
-    return NextResponse.json({
-      id: ref.id,
-      guestName: d.guest_name,
-      guestPhone: d.guest_phone ?? null,
-      locale: d.locale,
-      status: d.status,
-      priority: d.priority ?? 0,
-      allowPlusOne: d.allow_plus_one !== false,
-      createdAt: toIso(d.created_at),
+    await logActivity(db, {
+      kind: "guest_added",
+      actorAdminId: auth.admin.uid,
+      invitationId: ref.id,
+      guestName: guest.guestName,
     });
+
+    return NextResponse.json(guest);
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });

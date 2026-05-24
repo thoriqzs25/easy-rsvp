@@ -22,7 +22,9 @@ export type ActivityKind =
   | "event_config_updated"
   | "plus_one_requested"
   | "plus_one_approved"
-  | "plus_one_rejected";
+  | "plus_one_rejected"
+  | "guest_added"
+  | "guests_bulk_added";
 
 export const ROLE_ORDER: Record<AdminRole, number> = {
   viewer: 0,

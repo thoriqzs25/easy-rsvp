@@ -68,6 +68,9 @@ export default function GuestsPage() {
   const [generating, setGenerating] = useState(false);
   const [renewing, setRenewing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [bulkNames, setBulkNames] = useState("");
+  const [adding, setAdding] = useState(false);
   const fuseRef = useRef<Fuse<Guest> | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const sortByRef = useRef(sortBy);
@@ -180,19 +183,59 @@ export default function GuestsPage() {
 
   const onAddFriend = async () => {
     if (!canEdit) return;
+    setAdding(true);
     try {
-      const r = await adminJson<Guest>("/api/admin/guests", {
-        method: "POST",
-        body: JSON.stringify({
-          guestName: "New guest",
-          guestPhone: null,
-          locale: "id",
-          allowPlusOne: true,
-        }),
-      });
-      setRawItems((prev) => [...prev, r]);
-    } catch {
+      const names = bulkNames
+        .split("\n")
+        .map((n) => n.trim())
+        .filter((n) => n.length > 0);
+
+      if (names.length === 0) {
+        // single default
+        const r = await adminJson<Guest>("/api/admin/guests", {
+          method: "POST",
+          body: JSON.stringify({
+            guestName: "New guest",
+            guestPhone: null,
+            locale: "id",
+            allowPlusOne: true,
+          }),
+        });
+        setRawItems((prev) => [...prev, r]);
+      } else if (names.length === 1) {
+        // single with name
+        const r = await adminJson<Guest>("/api/admin/guests", {
+          method: "POST",
+          body: JSON.stringify({
+            guestName: names[0],
+            guestPhone: null,
+            locale: "id",
+            allowPlusOne: true,
+          }),
+        });
+        setRawItems((prev) => [...prev, r]);
+      } else {
+        // bulk
+        const r = await adminJson<{ items: Guest[] }>("/api/admin/guests", {
+          method: "POST",
+          body: JSON.stringify({
+            items: names.map((name) => ({
+              guestName: name,
+              guestPhone: null,
+              locale: "id",
+              allowPlusOne: true,
+            })),
+          }),
+        });
+        setRawItems((prev) => [...prev, ...r.items]);
+      }
+      setBulkNames("");
+      setShowAddModal(false);
+    } catch (e) {
+      console.error(e);
       setErrorMsg("Failed to add friend");
+    } finally {
+      setAdding(false);
     }
   };
 
@@ -423,7 +466,7 @@ export default function GuestsPage() {
         {canEdit ? (
           <button
             type="button"
-            onClick={onAddFriend}
+            onClick={() => setShowAddModal(true)}
             className="inline-flex px-4 py-2 rounded-lg bg-rose-800 text-white font-medium text-sm hover:bg-rose-900"
           >
             Add friend
@@ -827,6 +870,45 @@ export default function GuestsPage() {
                 className="px-4 py-2 rounded-lg bg-red-700 text-white text-sm font-medium hover:bg-red-800"
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Friend Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-stone-200 p-6 max-w-sm w-full shadow-lg space-y-4">
+            <h3 className="font-serif text-xl text-stone-900">Add friends</h3>
+            <p className="text-sm text-stone-600">
+              Leave blank to add a single &quot;New guest&quot;. Enter one name per line to add multiple.
+            </p>
+            <textarea
+              value={bulkNames}
+              onChange={(e) => setBulkNames(e.target.value)}
+              placeholder="Alice&#10;Bob&#10;Charlie"
+              rows={5}
+              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm resize-none"
+            />
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => {
+                  setShowAddModal(false);
+                  setBulkNames("");
+                }}
+                className="px-4 py-2 rounded-lg border border-stone-300 text-sm hover:bg-stone-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onAddFriend}
+                disabled={adding}
+                className="px-4 py-2 rounded-lg bg-rose-800 text-white text-sm font-medium hover:bg-rose-900 disabled:opacity-50"
+              >
+                {adding ? "Adding…" : "Add"}
               </button>
             </div>
           </div>
