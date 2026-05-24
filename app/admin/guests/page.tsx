@@ -33,6 +33,24 @@ const STATUS_BADGE: Record<string, string> = {
   draft: "bg-amber-100 text-amber-900",
 };
 
+// Deterministic distinct color from an ID (consistent across re-renders)
+const COLOR_PALETTE = [
+  "#e11d48", "#059669", "#2563eb", "#d97706", "#7c3aed",
+  "#db2777", "#0891b2", "#65a30d", "#4f46e5", "#be123c",
+  "#0d9488", "#ca8a04", "#9333ea", "#dc2626", "#16a34a",
+  "#2563eb", "#ea580c", "#0891b2", "#84cc16", "#e11d48",
+];
+
+function colorFromId(id: string): string {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash << 5) - hash + id.charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % COLOR_PALETTE.length;
+  return COLOR_PALETTE[idx];
+}
+
 export default function GuestsPage() {
   const session = useAdminSession();
   const canEdit = session?.role === "editor" || session?.role === "super_admin";
@@ -280,11 +298,28 @@ export default function GuestsPage() {
     el.style.boxShadow = "0 8px 24px rgba(0,0,0,0.15)";
     el.style.display = "flex";
     el.style.alignItems = "center";
+    el.style.gap = "10px";
     el.style.padding = "0 12px";
     el.style.fontSize = "14px";
     el.style.fontWeight = "500";
     el.style.color = "#1c1917";
-    el.textContent = row.guestName;
+
+    const dot = document.createElement("span");
+    dot.style.display = "inline-block";
+    dot.style.width = "10px";
+    dot.style.height = "10px";
+    dot.style.borderRadius = "9999px";
+    dot.style.background = colorFromId(row.id);
+    dot.style.flexShrink = "0";
+
+    const text = document.createElement("span");
+    text.textContent = `${(row.priority ?? 0) + 1}. ${row.guestName}`;
+    text.style.overflow = "hidden";
+    text.style.textOverflow = "ellipsis";
+    text.style.whiteSpace = "nowrap";
+
+    el.appendChild(dot);
+    el.appendChild(text);
     document.body.appendChild(el);
     return el;
   };
@@ -497,6 +532,7 @@ export default function GuestsPage() {
             >
             <thead className="bg-stone-50 text-left text-stone-600">
               <tr>
+                <th className="px-2 py-3 w-8 text-center text-xs font-medium">#</th>
                 <th className="px-3 py-3 w-10">
                   <input
                     type="checkbox"
@@ -515,7 +551,7 @@ export default function GuestsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-stone-100">
-              {items.map((row) => {
+              {items.map((row, idx) => {
                 return (
                   <tr
                     key={row.id}
@@ -530,6 +566,9 @@ export default function GuestsPage() {
                       dragId === row.id ? "opacity-30" : ""
                     } ${dragOverId === row.id ? "bg-emerald-50" : ""}`}
                   >
+                    <td className="px-2 py-3 text-center text-xs text-stone-400 tabular-nums">
+                      {idx + 1}
+                    </td>
                     <td className="px-3 py-3">
                       <input
                         type="checkbox"
@@ -558,19 +597,25 @@ export default function GuestsPage() {
                       )}
                     </td>
                     <td className="px-3 py-3">
-                      <input
-                        value={row.guestName}
-                        onChange={(e) =>
-                          setRawItems((prev) =>
-                            prev.map((g) =>
-                              g.id === row.id ? { ...g, guestName: e.target.value } : g,
-                            ),
-                          )
-                        }
-                        onBlur={(e) => updateGuest(row.id, { guestName: e.target.value })}
-                        disabled={!canEdit}
-                        className="w-full bg-transparent border border-transparent hover:border-stone-200 focus:border-stone-400 rounded px-1 py-0.5 text-stone-900 font-medium disabled:opacity-70"
-                      />
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
+                          style={{ backgroundColor: colorFromId(row.id) }}
+                        />
+                        <input
+                          value={row.guestName}
+                          onChange={(e) =>
+                            setRawItems((prev) =>
+                              prev.map((g) =>
+                                g.id === row.id ? { ...g, guestName: e.target.value } : g,
+                              ),
+                            )
+                          }
+                          onBlur={(e) => updateGuest(row.id, { guestName: e.target.value })}
+                          disabled={!canEdit}
+                          className="w-full bg-transparent border border-transparent hover:border-stone-200 focus:border-stone-400 rounded px-1 py-0.5 text-stone-900 font-medium disabled:opacity-70"
+                        />
+                      </div>
                     </td>
                     <td className="px-3 py-3">
                       <input
