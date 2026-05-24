@@ -82,6 +82,9 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
               ) : null}
             </nav>
             <div className="flex items-center gap-3 text-sm text-stone-600">
+              <span className="text-xs text-stone-400 font-mono" title="Commit hash">
+                {process.env.NEXT_PUBLIC_COMMIT_HASH}
+              </span>
               <span>{me?.name || user.email}</span>
               <button
                 type="button"
