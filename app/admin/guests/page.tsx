@@ -258,6 +258,8 @@ export default function GuestsPage() {
   // Drag & drop (desktop HTML5 + mobile touch)
   const [touchDragId, setTouchDragId] = useState<string | null>(null);
   const [touchOverId, setTouchOverId] = useState<string | null>(null);
+  const touchDragRef = useRef<string | null>(null);
+  const touchOverRef = useRef<string | null>(null);
 
   const onDragStart = (e: React.DragEvent, id: string) => {
     setDraggingId(id);
@@ -294,39 +296,52 @@ export default function GuestsPage() {
     if (draggedId) doReorder(draggedId, targetId);
   };
 
-  // Mobile touch drag
+  // Mobile touch drag via raw DOM listeners (non-passive)
   const onTouchStartHandle = (e: React.TouchEvent, id: string) => {
     if (sortBy !== "priority") return;
-    // prevent scroll while dragging the handle
-    (e.currentTarget as HTMLElement).style.touchAction = "none";
+    e.preventDefault();
+    touchDragRef.current = id;
+    touchOverRef.current = null;
     setTouchDragId(id);
-    setDraggingId(id);
-  };
-
-  const onTouchMove = (e: React.TouchEvent) => {
-    if (!touchDragId || !tableRef.current) return;
-    const touch = e.touches[0];
-    const rows = Array.from(tableRef.current.querySelectorAll("tbody tr"));
-    for (let i = 0; i < rows.length; i++) {
-      const row = rows[i];
-      const rect = row.getBoundingClientRect();
-      if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-        const id = row.getAttribute("data-id");
-        if (id && id !== touchDragId) {
-          setTouchOverId(id);
-        }
-        break;
-      }
-    }
-  };
-
-  const onTouchEnd = () => {
-    if (touchDragId && touchOverId) {
-      doReorder(touchDragId, touchOverId);
-    }
-    setTouchDragId(null);
     setTouchOverId(null);
-    setDraggingId(null);
+    setDraggingId(id);
+
+    const onMove = (ev: TouchEvent) => {
+      ev.preventDefault();
+      if (!touchDragRef.current || !tableRef.current) return;
+      const touch = ev.touches[0];
+      const rows = Array.from(tableRef.current.querySelectorAll("tbody tr"));
+      for (let i = 0; i < rows.length; i++) {
+        const row = rows[i];
+        const rect = row.getBoundingClientRect();
+        if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+          const rid = row.getAttribute("data-id");
+          if (rid && rid !== touchDragRef.current) {
+            touchOverRef.current = rid;
+            setTouchOverId(rid);
+          }
+          break;
+        }
+      }
+    };
+
+    const onEnd = () => {
+      if (touchDragRef.current && touchOverRef.current) {
+        doReorder(touchDragRef.current, touchOverRef.current);
+      }
+      touchDragRef.current = null;
+      touchOverRef.current = null;
+      setTouchDragId(null);
+      setTouchOverId(null);
+      setDraggingId(null);
+      document.removeEventListener("touchmove", onMove, { capture: true });
+      document.removeEventListener("touchend", onEnd);
+      document.removeEventListener("touchcancel", onEnd);
+    };
+
+    document.addEventListener("touchmove", onMove, { passive: false, capture: true });
+    document.addEventListener("touchend", onEnd);
+    document.addEventListener("touchcancel", onEnd);
   };
 
   const selectedDrafts = useMemo(
@@ -452,8 +467,6 @@ export default function GuestsPage() {
             <table
               ref={tableRef}
               className="w-full text-sm min-w-[640px]"
-              onTouchMove={onTouchMove}
-              onTouchEnd={onTouchEnd}
             >
             <thead className="bg-stone-50 text-left text-stone-600">
               <tr>
@@ -502,11 +515,17 @@ export default function GuestsPage() {
                       />
                     </td>
                     <td
-                      className="px-3 py-3 text-stone-400 text-xs select-none"
+                      className="px-3 py-3 text-stone-400 select-none"
                       onTouchStart={(e) => onTouchStartHandle(e, row.id)}
                       style={{ touchAction: sortBy === "priority" ? "none" : "auto" }}
                     >
-                      {sortBy === "priority" ? "⋮⋮" : ""}
+                      {sortBy === "priority" ? (
+                        <span className="inline-block px-2 py-1 text-lg leading-none cursor-grab active:cursor-grabbing">
+                          ⋮⋮
+                        </span>
+                      ) : (
+                        ""
+                      )}
                     </td>
                     <td className="px-3 py-3">
                       <input
