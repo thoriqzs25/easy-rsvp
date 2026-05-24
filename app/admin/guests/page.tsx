@@ -306,8 +306,9 @@ export default function GuestsPage() {
   const onTouchMove = (e: React.TouchEvent) => {
     if (!touchDragId || !tableRef.current) return;
     const touch = e.touches[0];
-    const rows = tableRef.current.querySelectorAll("tbody tr");
-    for (const row of rows) {
+    const rows = Array.from(tableRef.current.querySelectorAll("tbody tr"));
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
       const rect = row.getBoundingClientRect();
       if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
         const id = row.getAttribute("data-id");
