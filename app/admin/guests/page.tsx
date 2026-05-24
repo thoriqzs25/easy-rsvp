@@ -53,6 +53,10 @@ export default function GuestsPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const fuseRef = useRef<Fuse<Guest> | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
+  const sortByRef = useRef(sortBy);
+  sortByRef.current = sortBy;
+  const rawItemsRef = useRef(rawItems);
+  rawItemsRef.current = rawItems;
 
   // Expiry defaults to +7 days at local midnight
   const [expiryInput, setExpiryInput] = useState(toDatetimeLocalValue(defaultInvitationExpiresAt()));
@@ -274,7 +278,8 @@ export default function GuestsPage() {
 
   const doReorder = (draggedId: string, targetId: string) => {
     if (draggedId === targetId) return;
-    const reordered = [...rawItems];
+    const current = rawItemsRef.current;
+    const reordered = [...current];
     const fromIndex = reordered.findIndex((g) => g.id === draggedId);
     const toIndex = reordered.findIndex((g) => g.id === targetId);
     if (fromIndex < 0 || toIndex < 0) return;
@@ -296,53 +301,69 @@ export default function GuestsPage() {
     if (draggedId) doReorder(draggedId, targetId);
   };
 
-  // Mobile touch drag via raw DOM listeners (non-passive)
-  const onTouchStartHandle = (e: React.TouchEvent, id: string) => {
-    if (sortBy !== "priority") return;
-    e.preventDefault();
-    touchDragRef.current = id;
-    touchOverRef.current = null;
-    setTouchDragId(id);
-    setTouchOverId(null);
-    setDraggingId(id);
+  // iOS/mobile: raw non-passive touchstart on table with event delegation.
+  // React 18's synthetic touch events are passive, so e.preventDefault() is ignored.
+  useEffect(() => {
+    const table = tableRef.current;
+    if (!table) return;
 
-    const onMove = (ev: TouchEvent) => {
-      ev.preventDefault();
-      if (!touchDragRef.current || !tableRef.current) return;
-      const touch = ev.touches[0];
-      const rows = Array.from(tableRef.current.querySelectorAll("tbody tr"));
-      for (let i = 0; i < rows.length; i++) {
-        const row = rows[i];
-        const rect = row.getBoundingClientRect();
-        if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
-          const rid = row.getAttribute("data-id");
-          if (rid && rid !== touchDragRef.current) {
-            touchOverRef.current = rid;
-            setTouchOverId(rid);
-          }
-          break;
-        }
-      }
-    };
+    const onTouchStart = (e: TouchEvent) => {
+      if (sortByRef.current !== "priority") return;
+      const target = e.target as HTMLElement;
+      const handle = target.closest("[data-drag-handle]");
+      if (!handle) return;
+      e.preventDefault();
 
-    const onEnd = () => {
-      if (touchDragRef.current && touchOverRef.current) {
-        doReorder(touchDragRef.current, touchOverRef.current);
-      }
-      touchDragRef.current = null;
+      const id = handle.getAttribute("data-id");
+      if (!id) return;
+
+      touchDragRef.current = id;
       touchOverRef.current = null;
-      setTouchDragId(null);
+      setTouchDragId(id);
       setTouchOverId(null);
-      setDraggingId(null);
-      document.removeEventListener("touchmove", onMove, { capture: true });
-      document.removeEventListener("touchend", onEnd);
-      document.removeEventListener("touchcancel", onEnd);
+      setDraggingId(id);
+
+      const onMove = (ev: TouchEvent) => {
+        ev.preventDefault();
+        if (!touchDragRef.current || !tableRef.current) return;
+        const touch = ev.touches[0];
+        const rows = Array.from(tableRef.current.querySelectorAll("tbody tr"));
+        for (let i = 0; i < rows.length; i++) {
+          const row = rows[i];
+          const rect = row.getBoundingClientRect();
+          if (touch.clientY >= rect.top && touch.clientY <= rect.bottom) {
+            const rid = row.getAttribute("data-id");
+            if (rid && rid !== touchDragRef.current) {
+              touchOverRef.current = rid;
+              setTouchOverId(rid);
+            }
+            break;
+          }
+        }
+      };
+
+      const onEnd = () => {
+        if (touchDragRef.current && touchOverRef.current) {
+          doReorder(touchDragRef.current, touchOverRef.current);
+        }
+        touchDragRef.current = null;
+        touchOverRef.current = null;
+        setTouchDragId(null);
+        setTouchOverId(null);
+        setDraggingId(null);
+        document.removeEventListener("touchmove", onMove, { capture: true });
+        document.removeEventListener("touchend", onEnd);
+        document.removeEventListener("touchcancel", onEnd);
+      };
+
+      document.addEventListener("touchmove", onMove, { passive: false, capture: true });
+      document.addEventListener("touchend", onEnd);
+      document.addEventListener("touchcancel", onEnd);
     };
 
-    document.addEventListener("touchmove", onMove, { passive: false, capture: true });
-    document.addEventListener("touchend", onEnd);
-    document.addEventListener("touchcancel", onEnd);
-  };
+    table.addEventListener("touchstart", onTouchStart, { passive: false });
+    return () => table.removeEventListener("touchstart", onTouchStart);
+  }, []);
 
   const selectedDrafts = useMemo(
     () => items.filter((g) => selected.has(g.id) && g.status === "draft"),
@@ -516,8 +537,8 @@ export default function GuestsPage() {
                     </td>
                     <td
                       className="px-3 py-3 text-stone-400 select-none"
-                      onTouchStart={(e) => onTouchStartHandle(e, row.id)}
-                      style={{ touchAction: sortBy === "priority" ? "none" : "auto" }}
+                      data-drag-handle
+                      data-id={row.id}
                     >
                       {sortBy === "priority" ? (
                         <span className="inline-block px-2 py-1 text-lg leading-none cursor-grab active:cursor-grabbing">
