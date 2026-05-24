@@ -528,7 +528,7 @@ export default function GuestsPage() {
           <div className="overflow-x-auto">
             <table
               ref={tableRef}
-              className="w-full text-sm min-w-[640px]"
+              className="w-full text-sm min-w-[900px]"
             >
             <thead className="bg-stone-50 text-left text-stone-600">
               <tr>
@@ -542,8 +542,8 @@ export default function GuestsPage() {
                   />
                 </th>
                 <th className="px-3 py-3 w-8" />
-                <th className="px-3 py-3 font-medium">Name</th>
-                <th className="px-3 py-3 font-medium">Phone</th>
+                <th className="px-3 py-3 min-w-[200px] font-medium">Name</th>
+                <th className="px-3 py-3 min-w-[160px] font-medium">Phone</th>
                 <th className="px-3 py-3 font-medium">Locale</th>
                 <th className="px-3 py-3 font-medium">+1</th>
                 <th className="px-3 py-3 font-medium">Status</th>
@@ -596,7 +596,7 @@ export default function GuestsPage() {
                         ""
                       )}
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 min-w-[200px]">
                       <div className="flex items-center gap-2">
                         <span
                           className="inline-block w-2.5 h-2.5 rounded-full flex-shrink-0"
@@ -613,11 +613,11 @@ export default function GuestsPage() {
                           }
                           onBlur={(e) => updateGuest(row.id, { guestName: e.target.value })}
                           disabled={!canEdit}
-                          className="w-full bg-transparent border border-transparent hover:border-stone-200 focus:border-stone-400 rounded px-1 py-0.5 text-stone-900 font-medium disabled:opacity-70"
+                          className="w-full min-w-0 bg-transparent border border-transparent hover:border-stone-200 focus:border-stone-400 rounded px-1 py-0.5 text-stone-900 font-medium disabled:opacity-70"
                         />
                       </div>
                     </td>
-                    <td className="px-3 py-3">
+                    <td className="px-3 py-3 min-w-[160px]">
                       <input
                         value={row.guestPhone ?? ""}
                         onChange={(e) =>
@@ -634,7 +634,7 @@ export default function GuestsPage() {
                         }
                         disabled={!canEdit}
                         placeholder="Phone"
-                        className="w-full bg-transparent border border-transparent hover:border-stone-200 focus:border-stone-400 rounded px-1 py-0.5 text-stone-700 disabled:opacity-70"
+                        className="w-full min-w-0 bg-transparent border border-transparent hover:border-stone-200 focus:border-stone-400 rounded px-1 py-0.5 text-stone-700 disabled:opacity-70"
                       />
                     </td>
                     <td className="px-3 py-3">
