@@ -32,10 +32,9 @@ export async function GET(req: Request) {
     const filterName = (searchParams.get("filterName") || "").trim().toLowerCase();
     const db = adminDb();
 
-    // For guests page, include all statuses (draft + invited)
+    // Fetch all docs without Firestore orderBy so missing-priority docs aren't skipped
     const snap = await db
       .collection("invitations")
-      .orderBy("priority", "asc")
       .limit(500)
       .get();
 
@@ -88,8 +87,15 @@ export async function GET(req: Request) {
         if (at !== bt) return at - bt;
         return a.guestName.localeCompare(b.guestName);
       });
+    } else {
+      // priority sort: missing priority goes to the end
+      rows.sort((a, b) => {
+        const ap = typeof a.priority === "number" ? a.priority : Infinity;
+        const bp = typeof b.priority === "number" ? b.priority : Infinity;
+        if (ap !== bp) return ap - bp;
+        return a.guestName.localeCompare(b.guestName);
+      });
     }
-    // default sortBy === "priority" already in Firestore order
 
     return NextResponse.json({ items: rows });
   } catch (e) {

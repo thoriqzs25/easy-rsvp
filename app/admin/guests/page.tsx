@@ -114,8 +114,15 @@ export default function GuestsPage() {
         if (at !== bt) return at - bt;
         return a.guestName.localeCompare(b.guestName);
       });
+    } else {
+      // priority: missing goes to end
+      result.sort((a, b) => {
+        const ap = typeof a.priority === "number" ? a.priority : Infinity;
+        const bp = typeof b.priority === "number" ? b.priority : Infinity;
+        if (ap !== bp) return ap - bp;
+        return a.guestName.localeCompare(b.guestName);
+      });
     }
-    // priority = keep raw order
 
     setItems(result);
   }, [rawItems, sortBy, filterName, filterStatuses]);
