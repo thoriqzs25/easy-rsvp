@@ -46,12 +46,14 @@ function GuestThankYouPreview({
   guestName,
   showSampleWishes,
   venueUrl,
+  invitationUrl,
 }: {
   locale: InviteLocale;
   lines: EventLineSlice;
   guestName: string;
   showSampleWishes: boolean;
   venueUrl: string;
+  invitationUrl: string;
 }) {
   const c = inviteCopy[locale];
   const sampleWish =
@@ -108,6 +110,20 @@ function GuestThankYouPreview({
           {c.getDirections}
         </a>
       ) : null}
+      {invitationUrl ? (
+        <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/80 p-4">
+          <p className="text-xs uppercase text-amber-900/70 font-medium mb-1">{c.realInvitationLabel}</p>
+          <a
+            href={invitationUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm font-medium text-rose-800 hover:text-rose-900 underline underline-offset-4"
+          >
+            {c.redirectNow}
+          </a>
+          <p className="text-xs text-amber-800/80 mt-2">{c.realInvitationNotice}</p>
+        </div>
+      ) : null}
         {showSampleWishes ? (
           <div className="mt-8 pt-6 border-t border-stone-100">
             <p className="text-xs uppercase text-stone-500 mb-1">{c.wishesLabel}</p>
@@ -127,18 +143,20 @@ export default function EventConfigPage() {
     session?.role === "editor" || session?.role === "super_admin";
   const [lines, setLines] = useState<Lines>(empty);
   const [venueUrl, setVenueUrl] = useState("");
+  const [invitationUrl, setInvitationUrl] = useState("");
   const [msg, setMsg] = useState("");
   const [previewLocale, setPreviewLocale] = useState<InviteLocale>("en");
   const [showSampleWishes, setShowSampleWishes] = useState(true);
 
   useEffect(() => {
-    void adminJson<{ lines?: Partial<Lines>; venueUrl?: string }>("/api/admin/event-config")
+    void adminJson<{ lines?: Partial<Lines>; venueUrl?: string; invitationUrl?: string }>("/api/admin/event-config")
       .then((r) => {
         setLines({
           en: { ...empty.en, ...r.lines?.en },
           id: { ...empty.id, ...r.lines?.id },
         });
         setVenueUrl(r.venueUrl ?? "");
+        setInvitationUrl(r.invitationUrl ?? "");
       })
       .catch(() => setMsg("Could not load event config."));
   }, []);
@@ -149,7 +167,7 @@ export default function EventConfigPage() {
     try {
       await adminJson("/api/admin/event-config", {
         method: "PATCH",
-        body: JSON.stringify({ lines, venueUrl }),
+        body: JSON.stringify({ lines, venueUrl, invitationUrl }),
       });
       setMsg("Saved.");
     } catch (err) {
@@ -240,6 +258,20 @@ export default function EventConfigPage() {
           </label>
         </div>
 
+        <div className="rounded-xl border border-stone-200 bg-white p-6 space-y-3">
+          <h2 className="font-medium text-stone-800">Real invitation link</h2>
+          <label className="block">
+            <span className="text-xs text-stone-500">URL</span>
+            <input
+              disabled={!canEdit}
+              value={invitationUrl}
+              onChange={(e) => setInvitationUrl(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm disabled:bg-stone-50"
+              placeholder="https://..."
+            />
+          </label>
+        </div>
+
         <div className="rounded-xl border border-stone-200 bg-white p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="font-medium text-stone-800">Guest thank-you preview</h2>
@@ -292,6 +324,7 @@ export default function EventConfigPage() {
             guestName={previewGuestName}
             showSampleWishes={showSampleWishes}
             venueUrl={venueUrl}
+            invitationUrl={invitationUrl}
           />
         </div>
 

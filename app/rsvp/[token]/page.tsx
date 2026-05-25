@@ -26,7 +26,7 @@ type PublicPayload = {
   wishes: string;
   includesPlusOne: boolean;
   plusOneRequestStatus: "none" | "pending" | "rejected";
-  event: { lines: Record<InviteLocale, EventLines> | null; venueUrl?: string } | null;
+  event: { lines: Record<InviteLocale, EventLines> | null; venueUrl?: string; invitationUrl?: string } | null;
 };
 
 function str(
@@ -47,6 +47,45 @@ function eventHasContent(lines: EventLines | undefined): boolean {
       lines.time?.trim() ||
       lines.venue?.trim() ||
       lines.notes?.trim(),
+  );
+}
+
+function RealInvitationCard({ url, locale }: { url: string; locale: InviteLocale }) {
+  const c = inviteCopy[locale];
+  const [seconds, setSeconds] = useState(3);
+  const [active, setActive] = useState(true);
+
+  useEffect(() => {
+    if (!active) return;
+    if (seconds <= 0) {
+      window.location.href = url;
+      return;
+    }
+    const timer = setTimeout(() => setSeconds((s) => s - 1), 1000);
+    return () => clearTimeout(timer);
+  }, [seconds, active, url]);
+
+  return (
+    <div className="mt-6 rounded-xl border border-amber-200 bg-amber-50/80 p-4 space-y-2">
+      <p className="text-xs uppercase text-amber-900/70 font-medium">
+        {c.realInvitationLabel}
+      </p>
+      {active ? (
+        <p className="text-sm text-amber-950">
+          {(c.redirectingIn as (n: string) => string)(String(seconds))}
+        </p>
+      ) : null}
+      <a
+        href={url}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => setActive(false)}
+        className="inline-flex items-center gap-2 text-sm font-medium text-rose-800 hover:text-rose-900 underline underline-offset-4"
+      >
+        {c.redirectNow}
+      </a>
+      <p className="text-xs text-amber-800/80">{c.realInvitationNotice}</p>
+    </div>
   );
 }
 
@@ -214,6 +253,12 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
             >
               {c.getDirections}
             </a>
+          ) : null}
+          {data.event?.invitationUrl ? (
+            <RealInvitationCard
+              url={data.event.invitationUrl}
+              locale={locale}
+            />
           ) : null}
           {data.wishes ? (
             <div className="mt-8 pt-6 border-t border-stone-100">

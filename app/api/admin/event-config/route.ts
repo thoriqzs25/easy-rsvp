@@ -48,6 +48,7 @@ export async function GET(req: Request) {
     return NextResponse.json({
       lines: d.lines ?? emptyLines(),
       venueUrl: d.venueUrl ?? "",
+      invitationUrl: d.invitationUrl ?? "",
       updatedAt: toIso(d.updated_at),
     });
   } catch (e) {
@@ -62,16 +63,20 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   try {
-    const body = (await req.json()) as { lines?: Lines; venueUrl?: string };
+    const body = (await req.json()) as { lines?: Lines; venueUrl?: string; invitationUrl?: string };
     const hasLines = body.lines !== undefined;
     const hasVenueUrl = body.venueUrl !== undefined;
-    if (!hasLines && !hasVenueUrl) {
+    const hasInvitationUrl = body.invitationUrl !== undefined;
+    if (!hasLines && !hasVenueUrl && !hasInvitationUrl) {
       return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
     }
     if (hasLines && typeof body.lines !== "object") {
       return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
     }
     if (hasVenueUrl && typeof body.venueUrl !== "string") {
+      return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
+    }
+    if (hasInvitationUrl && typeof body.invitationUrl !== "string") {
       return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
     }
 
@@ -98,6 +103,9 @@ export async function PATCH(req: Request) {
     }
     if (hasVenueUrl) {
       updateData.venueUrl = body.venueUrl!.slice(0, 2000);
+    }
+    if (hasInvitationUrl) {
+      updateData.invitationUrl = body.invitationUrl!.slice(0, 2000);
     }
 
     await adminDb()

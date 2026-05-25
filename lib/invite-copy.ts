@@ -40,6 +40,10 @@ export const inviteCopy = {
     eventDetailsPending:
       "Event details will appear here once the hosts add them.",
     getDirections: "Get directions",
+    redirectingIn: (s: string) => `Redirecting in ${s}s…`,
+    redirectNow: "Go now",
+    realInvitationLabel: "Wedding invitation",
+    realInvitationNotice: "Please do not share this link publicly. It is intended for you only.",
     expiredTitle: "This invitation has expired",
     expiredBody:
       "The RSVP window for this link has closed. If you think this is a mistake, please reach out to the hosts.",
@@ -89,6 +93,10 @@ export const inviteCopy = {
     eventDetailsPending:
       "Rincian acara akan muncul di sini setelah dipasang oleh tuan rumah.",
     getDirections: "Petunjuk arah",
+    redirectingIn: (s: string) => `Mengarahkan dalam ${s}d…`,
+    redirectNow: "Buka sekarang",
+    realInvitationLabel: "Undangan pernikahan",
+    realInvitationNotice: "Mohon jangan membagikan tautan ini secara publik. Tautan ini hanya untuk Anda.",
     expiredTitle: "Undangan ini sudah berakhir",
     expiredBody:
       "Batas konfirmasi untuk tautan ini sudah lewat. Jika ini kesalahan, silakan hubungi kami.",

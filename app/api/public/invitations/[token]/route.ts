@@ -44,7 +44,7 @@ export async function GET(
       includesPlusOne: readIncludesPlusOne(d),
       plusOneRequestStatus: readPlusOneRequestStatusPublic(d),
       event: eventData
-        ? { lines: eventData.lines ?? null, venueUrl: eventData.venueUrl ?? "", updatedAt: toIso(eventData.updated_at) }
+        ? { lines: eventData.lines ?? null, venueUrl: eventData.venueUrl ?? "", invitationUrl: eventData.invitationUrl ?? "", updatedAt: toIso(eventData.updated_at) }
         : null,
     });
   } catch (e) {
