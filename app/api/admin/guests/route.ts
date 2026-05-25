@@ -135,8 +135,13 @@ export async function POST(req: Request) {
     // BULK: items array
     if (Array.isArray(body.items) && body.items.length > 0) {
       const validItems = body.items
-        .map((it) => (it.guestName ?? "").trim())
-        .filter((name) => name.length > 0);
+        .map((it) => ({
+          name: (it.guestName ?? "").trim(),
+          phone: (it.guestPhone ?? "").trim() || null,
+          locale: it.locale === "id" ? "id" : "en",
+          allowPlusOne: it.allowPlusOne !== false,
+        }))
+        .filter((it) => it.name.length > 0);
 
       if (validItems.length === 0) {
         return NextResponse.json({ error: "INVALID_NAME" }, { status: 400 });
@@ -146,13 +151,13 @@ export async function POST(req: Request) {
       const batch = db.batch();
       const refs: DocumentReference[] = [];
 
-      for (const name of validItems) {
+      for (const it of validItems) {
         const ref = db.collection("invitations").doc();
         batch.set(ref, {
-          guest_name: name,
-          guest_phone: null,
-          locale,
-          allow_plus_one: allowPlusOne,
+          guest_name: it.name,
+          guest_phone: it.phone,
+          locale: it.locale,
+          allow_plus_one: it.allowPlusOne,
           status: "draft",
           priority: nextPriority++,
           token: null,
