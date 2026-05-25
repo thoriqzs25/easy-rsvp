@@ -45,11 +45,13 @@ function GuestThankYouPreview({
   lines,
   guestName,
   showSampleWishes,
+  venueUrl,
 }: {
   locale: InviteLocale;
   lines: EventLineSlice;
   guestName: string;
   showSampleWishes: boolean;
+  venueUrl: string;
 }) {
   const c = inviteCopy[locale];
   const sampleWish =
@@ -73,29 +75,39 @@ function GuestThankYouPreview({
         <h4 className="font-serif text-lg sm:text-xl text-stone-800 mb-4">
           {c.eventHeading}
         </h4>
-        {lines.heading ||
-        lines.date ||
-        lines.time ||
-        lines.venue ||
-        lines.notes ? (
-          <ul className="space-y-3 text-stone-700 text-sm sm:text-base">
-            {lines.heading ? (
-              <li className="font-medium text-lg">{lines.heading}</li>
-            ) : null}
-            {lines.date ? <li>{lines.date}</li> : null}
-            {lines.time ? <li>{lines.time}</li> : null}
-            {lines.venue ? <li>{lines.venue}</li> : null}
-            {lines.notes ? (
-              <li className="text-sm text-stone-500 whitespace-pre-wrap">
-                {lines.notes}
-              </li>
-            ) : null}
-          </ul>
-        ) : (
-          <p className="text-stone-400 text-sm italic">
-            Add fields above — nothing to show yet for this language.
-          </p>
-        )}
+      {lines.heading ||
+      lines.date ||
+      lines.time ||
+      lines.venue ||
+      lines.notes ? (
+        <ul className="space-y-3 text-stone-700 text-sm sm:text-base">
+          {lines.heading ? (
+            <li className="font-medium text-lg">{lines.heading}</li>
+          ) : null}
+          {lines.date ? <li>{lines.date}</li> : null}
+          {lines.time ? <li>{lines.time}</li> : null}
+          {lines.venue ? <li>{lines.venue}</li> : null}
+          {lines.notes ? (
+            <li className="text-sm text-stone-500 whitespace-pre-wrap">
+              {lines.notes}
+            </li>
+          ) : null}
+        </ul>
+      ) : (
+        <p className="text-stone-400 text-sm italic">
+          Add fields above — nothing to show yet for this language.
+        </p>
+      )}
+      {venueUrl ? (
+        <a
+          href={venueUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-rose-800 hover:text-rose-900 underline underline-offset-4"
+        >
+          {c.getDirections}
+        </a>
+      ) : null}
         {showSampleWishes ? (
           <div className="mt-8 pt-6 border-t border-stone-100">
             <p className="text-xs uppercase text-stone-500 mb-1">{c.wishesLabel}</p>
@@ -114,18 +126,20 @@ export default function EventConfigPage() {
   const canEdit =
     session?.role === "editor" || session?.role === "super_admin";
   const [lines, setLines] = useState<Lines>(empty);
+  const [venueUrl, setVenueUrl] = useState("");
   const [msg, setMsg] = useState("");
   const [previewLocale, setPreviewLocale] = useState<InviteLocale>("en");
   const [showSampleWishes, setShowSampleWishes] = useState(true);
 
   useEffect(() => {
-    void adminJson<{ lines?: Partial<Lines> }>("/api/admin/event-config")
-      .then((r) =>
+    void adminJson<{ lines?: Partial<Lines>; venueUrl?: string }>("/api/admin/event-config")
+      .then((r) => {
         setLines({
           en: { ...empty.en, ...r.lines?.en },
           id: { ...empty.id, ...r.lines?.id },
-        }),
-      )
+        });
+        setVenueUrl(r.venueUrl ?? "");
+      })
       .catch(() => setMsg("Could not load event config."));
   }, []);
 
@@ -135,7 +149,7 @@ export default function EventConfigPage() {
     try {
       await adminJson("/api/admin/event-config", {
         method: "PATCH",
-        body: JSON.stringify({ lines }),
+        body: JSON.stringify({ lines, venueUrl }),
       });
       setMsg("Saved.");
     } catch (err) {
@@ -212,6 +226,20 @@ export default function EventConfigPage() {
           </div>
         </div>
 
+        <div className="rounded-xl border border-stone-200 bg-white p-6 space-y-3">
+          <h2 className="font-medium text-stone-800">Venue map</h2>
+          <label className="block">
+            <span className="text-xs text-stone-500">Map URL</span>
+            <input
+              disabled={!canEdit}
+              value={venueUrl}
+              onChange={(e) => setVenueUrl(e.target.value)}
+              className="mt-1 w-full rounded-lg border border-stone-300 px-3 py-2 text-sm disabled:bg-stone-50"
+              placeholder="https://maps.app.goo.gl/..."
+            />
+          </label>
+        </div>
+
         <div className="rounded-xl border border-stone-200 bg-white p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <h2 className="font-medium text-stone-800">Guest thank-you preview</h2>
@@ -263,6 +291,7 @@ export default function EventConfigPage() {
             lines={lines[previewLocale]}
             guestName={previewGuestName}
             showSampleWishes={showSampleWishes}
+            venueUrl={venueUrl}
           />
         </div>
 

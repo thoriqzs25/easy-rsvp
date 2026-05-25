@@ -47,6 +47,7 @@ export async function GET(req: Request) {
     const d = doc.data()!;
     return NextResponse.json({
       lines: d.lines ?? emptyLines(),
+      venueUrl: d.venueUrl ?? "",
       updatedAt: toIso(d.updated_at),
     });
   } catch (e) {
@@ -61,37 +62,48 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   try {
-    const body = (await req.json()) as { lines?: Lines };
-    if (!body.lines || typeof body.lines !== "object") {
+    const body = (await req.json()) as { lines?: Lines; venueUrl?: string };
+    const hasLines = body.lines !== undefined;
+    const hasVenueUrl = body.venueUrl !== undefined;
+    if (!hasLines && !hasVenueUrl) {
       return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
     }
-    const lines = {
-      en: {
-        heading: String(body.lines.en?.heading ?? "").slice(0, 500),
-        date: String(body.lines.en?.date ?? "").slice(0, 500),
-        time: String(body.lines.en?.time ?? "").slice(0, 500),
-        venue: String(body.lines.en?.venue ?? "").slice(0, 2000),
-        notes: String(body.lines.en?.notes ?? "").slice(0, 4000),
-      },
-      id: {
-        heading: String(body.lines.id?.heading ?? "").slice(0, 500),
-        date: String(body.lines.id?.date ?? "").slice(0, 500),
-        time: String(body.lines.id?.time ?? "").slice(0, 500),
-        venue: String(body.lines.id?.venue ?? "").slice(0, 2000),
-        notes: String(body.lines.id?.notes ?? "").slice(0, 4000),
-      },
+    if (hasLines && typeof body.lines !== "object") {
+      return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
+    }
+    if (hasVenueUrl && typeof body.venueUrl !== "string") {
+      return NextResponse.json({ error: "INVALID_BODY" }, { status: 400 });
+    }
+
+    const updateData: Record<string, any> = {
+      updated_at: FieldValue.serverTimestamp(),
     };
+    if (hasLines) {
+      updateData.lines = {
+        en: {
+          heading: String(body.lines!.en?.heading ?? "").slice(0, 500),
+          date: String(body.lines!.en?.date ?? "").slice(0, 500),
+          time: String(body.lines!.en?.time ?? "").slice(0, 500),
+          venue: String(body.lines!.en?.venue ?? "").slice(0, 2000),
+          notes: String(body.lines!.en?.notes ?? "").slice(0, 4000),
+        },
+        id: {
+          heading: String(body.lines!.id?.heading ?? "").slice(0, 500),
+          date: String(body.lines!.id?.date ?? "").slice(0, 500),
+          time: String(body.lines!.id?.time ?? "").slice(0, 500),
+          venue: String(body.lines!.id?.venue ?? "").slice(0, 2000),
+          notes: String(body.lines!.id?.notes ?? "").slice(0, 4000),
+        },
+      };
+    }
+    if (hasVenueUrl) {
+      updateData.venueUrl = body.venueUrl!.slice(0, 2000);
+    }
 
     await adminDb()
       .collection("event_config")
       .doc(DOC_ID)
-      .set(
-        {
-          lines,
-          updated_at: FieldValue.serverTimestamp(),
-        },
-        { merge: true },
-      );
+      .set(updateData, { merge: true });
 
     await logActivity(adminDb(), {
       kind: "event_config_updated",

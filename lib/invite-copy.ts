@@ -39,6 +39,7 @@ export const inviteCopy = {
       "Please accept or decline before this time. If you don’t respond in time, your place may be offered to another guest.",
     eventDetailsPending:
       "Event details will appear here once the hosts add them.",
+    getDirections: "Get directions",
     expiredTitle: "This invitation has expired",
     expiredBody:
       "The RSVP window for this link has closed. If you think this is a mistake, please reach out to the hosts.",
@@ -87,6 +88,7 @@ export const inviteCopy = {
       "Silakan konfirmasi hadir atau tolak sebelum waktu ini. Jika tidak ada tanggapan tepat waktu, tempat Anda dapat ditawarkan ke tamu lain.",
     eventDetailsPending:
       "Rincian acara akan muncul di sini setelah dipasang oleh tuan rumah.",
+    getDirections: "Petunjuk arah",
     expiredTitle: "Undangan ini sudah berakhir",
     expiredBody:
       "Batas konfirmasi untuk tautan ini sudah lewat. Jika ini kesalahan, silakan hubungi kami.",

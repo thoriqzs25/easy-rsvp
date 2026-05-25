@@ -26,7 +26,7 @@ type PublicPayload = {
   wishes: string;
   includesPlusOne: boolean;
   plusOneRequestStatus: "none" | "pending" | "rejected";
-  event: { lines: Record<InviteLocale, EventLines> } | null;
+  event: { lines: Record<InviteLocale, EventLines> | null; venueUrl?: string } | null;
 };
 
 function str(
@@ -205,6 +205,16 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
           {!eventHasContent(ev) ? (
             <p className="text-stone-500 text-sm">{c.loading}</p>
           ) : null}
+          {data.event?.venueUrl ? (
+            <a
+              href={data.event.venueUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-rose-800 hover:text-rose-900 underline underline-offset-4"
+            >
+              {c.getDirections}
+            </a>
+          ) : null}
           {data.wishes ? (
             <div className="mt-8 pt-6 border-t border-stone-100">
               <p className="text-xs uppercase text-stone-500 mb-1">{c.wishesLabel}</p>
@@ -345,6 +355,16 @@ export default function RsvpPage({ params }: { params: { token: string } }) {
           <EventDetailsUl lines={evPending} />
           {!eventHasContent(evPending) ? (
             <p className="text-stone-500 text-sm italic">{c.eventDetailsPending}</p>
+          ) : null}
+          {data.event?.venueUrl ? (
+            <a
+              href={data.event.venueUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-3 text-sm font-medium text-rose-800 hover:text-rose-900 underline underline-offset-4"
+            >
+              {c.getDirections}
+            </a>
           ) : null}
         </div>
 

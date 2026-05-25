@@ -43,8 +43,8 @@ export async function GET(
       respondedAt: toIso(d.responded_at),
       includesPlusOne: readIncludesPlusOne(d),
       plusOneRequestStatus: readPlusOneRequestStatusPublic(d),
-      event: eventData?.lines
-        ? { lines: eventData.lines, updatedAt: toIso(eventData.updated_at) }
+      event: eventData
+        ? { lines: eventData.lines ?? null, venueUrl: eventData.venueUrl ?? "", updatedAt: toIso(eventData.updated_at) }
         : null,
     });
   } catch (e) {
