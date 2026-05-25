@@ -69,7 +69,9 @@ export default function GuestsPage() {
   const [renewing, setRenewing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [bulkNames, setBulkNames] = useState("");
+  const [bulkRows, setBulkRows] = useState<{ name: string; phone: string; locale: "en" | "id"; allowPlusOne: boolean }[]>([
+    { name: "", phone: "", locale: "id", allowPlusOne: true },
+  ]);
   const [adding, setAdding] = useState(false);
   const fuseRef = useRef<Fuse<Guest> | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
@@ -183,53 +185,40 @@ export default function GuestsPage() {
 
   const onAddFriend = async () => {
     if (!canEdit) return;
+    const validRows = bulkRows.filter((r) => r.name.trim().length > 0);
+    if (validRows.length === 0) {
+      setErrorMsg("Please enter at least one name.");
+      return;
+    }
     setAdding(true);
+    setErrorMsg("");
     try {
-      const names = bulkNames
-        .split("\n")
-        .map((n) => n.trim())
-        .filter((n) => n.length > 0);
-
-      if (names.length === 0) {
-        // single default
+      if (validRows.length === 1) {
         const r = await adminJson<Guest>("/api/admin/guests", {
           method: "POST",
           body: JSON.stringify({
-            guestName: "New guest",
-            guestPhone: null,
-            locale: "id",
-            allowPlusOne: true,
-          }),
-        });
-        setRawItems((prev) => [...prev, r]);
-      } else if (names.length === 1) {
-        // single with name
-        const r = await adminJson<Guest>("/api/admin/guests", {
-          method: "POST",
-          body: JSON.stringify({
-            guestName: names[0],
-            guestPhone: null,
-            locale: "id",
-            allowPlusOne: true,
+            guestName: validRows[0].name.trim(),
+            guestPhone: validRows[0].phone.trim() || null,
+            locale: validRows[0].locale,
+            allowPlusOne: validRows[0].allowPlusOne,
           }),
         });
         setRawItems((prev) => [...prev, r]);
       } else {
-        // bulk
         const r = await adminJson<{ items: Guest[] }>("/api/admin/guests", {
           method: "POST",
           body: JSON.stringify({
-            items: names.map((name) => ({
-              guestName: name,
-              guestPhone: null,
-              locale: "id",
-              allowPlusOne: true,
+            items: validRows.map((row) => ({
+              guestName: row.name.trim(),
+              guestPhone: row.phone.trim() || null,
+              locale: row.locale,
+              allowPlusOne: row.allowPlusOne,
             })),
           }),
         });
         setRawItems((prev) => [...prev, ...r.items]);
       }
-      setBulkNames("");
+      setBulkRows([{ name: "", phone: "", locale: "id", allowPlusOne: true }]);
       setShowAddModal(false);
     } catch (e) {
       console.error(e);
@@ -879,24 +868,93 @@ export default function GuestsPage() {
       {/* Add Friend Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl border border-stone-200 p-6 max-w-sm w-full shadow-lg space-y-4">
+          <div className="bg-white rounded-xl border border-stone-200 p-6 max-w-lg w-full shadow-lg space-y-4 max-h-[80vh] overflow-y-auto">
             <h3 className="font-serif text-xl text-stone-900">Add friends</h3>
-            <p className="text-sm text-stone-600">
-              Leave blank to add a single &quot;New guest&quot;. Enter one name per line to add multiple.
-            </p>
-            <textarea
-              value={bulkNames}
-              onChange={(e) => setBulkNames(e.target.value)}
-              placeholder="Alice&#10;Bob&#10;Charlie"
-              rows={5}
-              className="w-full rounded-lg border border-stone-300 px-3 py-2 text-sm resize-none"
-            />
-            <div className="flex gap-3 justify-end">
+            <div className="space-y-3">
+              {bulkRows.map((row, i) => (
+                <div key={i} className="flex flex-wrap items-center gap-2">
+                  <input
+                    value={row.name}
+                    onChange={(e) =>
+                      setBulkRows((prev) =>
+                        prev.map((r, idx) => (idx === i ? { ...r, name: e.target.value } : r)),
+                      )
+                    }
+                    placeholder="Name"
+                    className="flex-1 min-w-[120px] rounded-lg border border-stone-300 px-2 py-1.5 text-sm"
+                  />
+                  <input
+                    value={row.phone}
+                    onChange={(e) =>
+                      setBulkRows((prev) =>
+                        prev.map((r, idx) => (idx === i ? { ...r, phone: e.target.value } : r)),
+                      )
+                    }
+                    placeholder="Phone"
+                    className="w-28 rounded-lg border border-stone-300 px-2 py-1.5 text-sm"
+                  />
+                  <select
+                    value={row.locale}
+                    onChange={(e) =>
+                      setBulkRows((prev) =>
+                        prev.map((r, idx) =>
+                          idx === i ? { ...r, locale: e.target.value as "en" | "id" } : r,
+                        ),
+                      )
+                    }
+                    className="w-20 rounded-lg border border-stone-300 px-2 py-1.5 text-sm"
+                  >
+                    <option value="id">ID</option>
+                    <option value="en">EN</option>
+                  </select>
+                  <label className="flex items-center gap-1 text-sm text-stone-600 select-none">
+                    <input
+                      type="checkbox"
+                      checked={row.allowPlusOne}
+                      onChange={(e) =>
+                        setBulkRows((prev) =>
+                          prev.map((r, idx) =>
+                            idx === i ? { ...r, allowPlusOne: e.target.checked } : r,
+                          ),
+                        )
+                      }
+                      className="rounded border-stone-400"
+                    />
+                    +1
+                  </label>
+                  {bulkRows.length > 1 ? (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setBulkRows((prev) => prev.filter((_, idx) => idx !== i))
+                      }
+                      className="text-stone-400 hover:text-red-600 text-xs px-1"
+                      title="Remove row"
+                    >
+                      ×
+                    </button>
+                  ) : null}
+                </div>
+              ))}
+              <button
+                type="button"
+                onClick={() =>
+                  setBulkRows((prev) => [
+                    ...prev,
+                    { name: "", phone: "", locale: "id", allowPlusOne: true },
+                  ])
+                }
+                className="text-sm text-rose-800 hover:text-rose-900 font-medium"
+              >
+                + Add another row
+              </button>
+            </div>
+            <div className="flex gap-3 justify-end pt-2">
               <button
                 type="button"
                 onClick={() => {
                   setShowAddModal(false);
-                  setBulkNames("");
+                  setBulkRows([{ name: "", phone: "", locale: "id", allowPlusOne: true }]);
                 }}
                 className="px-4 py-2 rounded-lg border border-stone-300 text-sm hover:bg-stone-50"
               >
