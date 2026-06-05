@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Easy RSVP">
+  <defs>
+    <linearGradient id="e" x1="4" y1="4" x2="28" y2="28" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#be185d"/>
+      <stop offset="1" stop-color="#881337"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="7" fill="url(#e)"/>
+  <path
+    fill="none"
+    stroke="#fff8f8"
+    stroke-width="1.35"
+    stroke-linejoin="round"
+    stroke-linecap="round"
+    d="M7 11.5h18v11H7v-11z"
+  />
+  <path
+    fill="none"
+    stroke="#fff8f8"
+    stroke-width="1.35"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    d="M7 11.5L16 18l9-6.5"
+  />
+</svg>
