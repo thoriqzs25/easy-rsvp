@@ -24,7 +24,8 @@ export type ActivityKind =
   | "plus_one_approved"
   | "plus_one_rejected"
   | "guest_added"
-  | "guests_bulk_added";
+  | "guests_bulk_added"
+  | "guests_csv_imported";
 
 export const ROLE_ORDER: Record<AdminRole, number> = {
   viewer: 0,

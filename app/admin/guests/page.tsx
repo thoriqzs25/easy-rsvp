@@ -6,6 +6,7 @@ import { useAdminSession } from "@/components/AdminSessionContext";
 import { adminJson } from "@/lib/admin-fetch";
 import Fuse from "fuse.js";
 import { defaultInvitationExpiresAt, toDatetimeLocalValue } from "@/lib/datetime-local";
+import { downloadGuestCsvTemplate } from "@/lib/guest-csv";
 
 type Guest = {
   id: string;
@@ -73,6 +74,13 @@ export default function GuestsPage() {
     { name: "", phone: "", locale: "id", allowPlusOne: true },
   ]);
   const [adding, setAdding] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState<{
+    created: number;
+    skipped: number;
+    errors: { row: number; message: string }[];
+  } | null>(null);
+  const csvInputRef = useRef<HTMLInputElement>(null);
   const fuseRef = useRef<Fuse<Guest> | null>(null);
   const tableRef = useRef<HTMLTableElement>(null);
   const sortByRef = useRef(sortBy);
@@ -181,6 +189,37 @@ export default function GuestsPage() {
     setFilterName("");
     setFilterStatuses([]);
     setSortBy("priority");
+  };
+
+  const onImportCsv = async (file: File) => {
+    if (!canEdit) return;
+    setImporting(true);
+    setErrorMsg("");
+    try {
+      const csv = await file.text();
+      const r = await adminJson<{
+        created: Guest[];
+        skipped: number;
+        errors: { row: number; message: string }[];
+      }>("/api/admin/guests/import", {
+        method: "POST",
+        body: JSON.stringify({ csv }),
+      });
+      if (r.created.length > 0) {
+        setRawItems((prev) => [...prev, ...r.created]);
+      }
+      setImportResult({
+        created: r.created.length,
+        skipped: r.skipped,
+        errors: r.errors,
+      });
+    } catch (e) {
+      console.error(e);
+      setErrorMsg("CSV import failed");
+    } finally {
+      setImporting(false);
+      if (csvInputRef.current) csvInputRef.current.value = "";
+    }
   };
 
   const onAddFriend = async () => {
@@ -453,13 +492,40 @@ export default function GuestsPage() {
           </p>
         </div>
         {canEdit ? (
-          <button
-            type="button"
-            onClick={() => setShowAddModal(true)}
-            className="inline-flex px-4 py-2 rounded-lg bg-rose-800 text-white font-medium text-sm hover:bg-rose-900"
-          >
-            Add friend
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={downloadGuestCsvTemplate}
+              className="inline-flex px-4 py-2 rounded-lg border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50"
+            >
+              Download CSV template
+            </button>
+            <button
+              type="button"
+              onClick={() => csvInputRef.current?.click()}
+              disabled={importing}
+              className="inline-flex px-4 py-2 rounded-lg border border-stone-300 text-stone-800 font-medium text-sm hover:bg-stone-50 disabled:opacity-50"
+            >
+              {importing ? "Importing…" : "Import CSV"}
+            </button>
+            <input
+              ref={csvInputRef}
+              type="file"
+              accept=".csv,text/csv"
+              className="hidden"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void onImportCsv(file);
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => setShowAddModal(true)}
+              className="inline-flex px-4 py-2 rounded-lg bg-rose-800 text-white font-medium text-sm hover:bg-rose-900"
+            >
+              Add friend
+            </button>
+          </div>
         ) : null}
       </div>
 
@@ -859,6 +925,51 @@ export default function GuestsPage() {
                 className="px-4 py-2 rounded-lg bg-red-700 text-white text-sm font-medium hover:bg-red-800"
               >
                 Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Result */}
+      {importResult && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-stone-200 p-6 max-w-md w-full shadow-lg space-y-4 max-h-[80vh] overflow-y-auto">
+            <h3 className="font-serif text-xl text-stone-900">Import complete</h3>
+            <div className="text-sm text-stone-600 space-y-1">
+              <p>
+                <strong>{importResult.created}</strong> guest
+                {importResult.created === 1 ? "" : "s"} added
+              </p>
+              {importResult.skipped > 0 ? (
+                <p>
+                  <strong>{importResult.skipped}</strong> duplicate
+                  {importResult.skipped === 1 ? "" : "s"} skipped (same name and phone)
+                </p>
+              ) : null}
+            </div>
+            {importResult.errors.length > 0 ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900 space-y-1">
+                <p className="font-medium">
+                  {importResult.errors.length} row
+                  {importResult.errors.length === 1 ? "" : "s"} with errors:
+                </p>
+                <ul className="list-disc pl-5 space-y-0.5">
+                  {importResult.errors.map((err) => (
+                    <li key={`${err.row}-${err.message}`}>
+                      Row {err.row}: {err.message}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={() => setImportResult(null)}
+                className="px-4 py-2 rounded-lg bg-rose-800 text-white text-sm font-medium hover:bg-rose-900"
+              >
+                Done
               </button>
             </div>
           </div>
