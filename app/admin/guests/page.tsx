@@ -69,6 +69,8 @@ export default function GuestsPage() {
   const [generating, setGenerating] = useState(false);
   const [renewing, setRenewing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [bulkRows, setBulkRows] = useState<{ name: string; phone: string; locale: "en" | "id"; allowPlusOne: boolean }[]>([
     { name: "", phone: "", locale: "id", allowPlusOne: true },
@@ -293,9 +295,50 @@ export default function GuestsPage() {
     try {
       await adminJson(`/api/admin/guests/${id}`, { method: "DELETE" });
       setRawItems((prev) => prev.filter((g) => g.id !== id));
+      setSelected((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       setShowDeleteConfirm(null);
     } catch {
       setErrorMsg("Failed to delete");
+    }
+  };
+
+  const onBulkDelete = async () => {
+    if (!canEdit) return;
+    const ids = items.filter((g) => selected.has(g.id)).map((g) => g.id);
+    if (ids.length === 0) return;
+    setBulkDeleting(true);
+    setErrorMsg("");
+    try {
+      const r = await adminJson<{
+        items: { id: string; ok: boolean; action?: string; error?: string }[];
+      }>("/api/admin/guests/delete", {
+        method: "POST",
+        body: JSON.stringify({ ids }),
+      });
+      const succeeded = new Set(r.items.filter((i) => i.ok).map((i) => i.id));
+      const errors = r.items.filter((i) => !i.ok);
+      if (succeeded.size > 0) {
+        setRawItems((prev) => prev.filter((g) => !succeeded.has(g.id)));
+        setSelected((prev) => {
+          const next = new Set(prev);
+          succeeded.forEach((id) => next.delete(id));
+          return next;
+        });
+      }
+      if (errors.length > 0) {
+        setErrorMsg(
+          `${errors.length} failed: ${errors.map((e) => e.error).join(", ")}`,
+        );
+      }
+      setShowBulkDeleteConfirm(false);
+    } catch {
+      setErrorMsg("Bulk delete failed");
+    } finally {
+      setBulkDeleting(false);
     }
   };
 
@@ -482,6 +525,21 @@ export default function GuestsPage() {
     [items, selected],
   );
 
+  const selectedForDelete = useMemo(
+    () => items.filter((g) => selected.has(g.id)),
+    [items, selected],
+  );
+
+  const selectedDeleteDrafts = useMemo(
+    () => selectedForDelete.filter((g) => g.status === "draft").length,
+    [selectedForDelete],
+  );
+
+  const selectedDeleteRevokes = useMemo(
+    () => selectedForDelete.filter((g) => g.status !== "draft").length,
+    [selectedForDelete],
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -615,6 +673,13 @@ export default function GuestsPage() {
             className="px-3 py-1.5 rounded-lg bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Generate {selectedDrafts.length} invitation{selectedDrafts.length === 1 ? "" : "s"}
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowBulkDeleteConfirm(true)}
+            className="px-3 py-1.5 rounded-lg border border-red-300 text-red-800 text-sm font-medium hover:bg-red-50"
+          >
+            Delete {selected.size} selected
           </button>
         </div>
       )}
@@ -892,6 +957,39 @@ export default function GuestsPage() {
                 className="px-4 py-2 rounded-lg bg-emerald-700 text-white text-sm font-medium hover:bg-emerald-800 disabled:opacity-50"
               >
                 {renewing ? "Renewing…" : "Renew"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirm */}
+      {showBulkDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl border border-stone-200 p-6 max-w-sm w-full shadow-lg space-y-4">
+            <h3 className="font-serif text-xl text-stone-900">Confirm bulk delete</h3>
+            <p className="text-sm text-stone-600">
+              {selectedDeleteDrafts > 0 && selectedDeleteRevokes === 0
+                ? `Delete ${selectedDeleteDrafts} draft friend${selectedDeleteDrafts === 1 ? "" : "s"}?`
+                : selectedDeleteRevokes > 0 && selectedDeleteDrafts === 0
+                  ? `This will revoke ${selectedDeleteRevokes} invitation${selectedDeleteRevokes === 1 ? "" : "s"}. Continue?`
+                  : `Delete ${selectedDeleteDrafts} draft${selectedDeleteDrafts === 1 ? "" : "s"} and revoke ${selectedDeleteRevokes} invitation${selectedDeleteRevokes === 1 ? "" : "s"}. Continue?`}
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowBulkDeleteConfirm(false)}
+                className="px-4 py-2 rounded-lg border border-stone-300 text-sm hover:bg-stone-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={onBulkDelete}
+                disabled={bulkDeleting}
+                className="px-4 py-2 rounded-lg bg-red-700 text-white text-sm font-medium hover:bg-red-800 disabled:opacity-50"
+              >
+                {bulkDeleting ? "Deleting…" : "Confirm"}
               </button>
             </div>
           </div>
