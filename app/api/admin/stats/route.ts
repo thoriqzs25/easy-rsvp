@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/auth-api";
 import { adminDb } from "@/lib/firebase-admin";
 import type { InvitationStatus } from "@/lib/types";
+import { headcountForAcceptedGuest } from "@/lib/plus-one";
 
 export const dynamic = "force-dynamic";
 
@@ -44,7 +45,21 @@ export async function GET(req: Request) {
       .get();
     const pendingPlusOneRequests = plusOneSnap.data().count;
 
-    return NextResponse.json({ total, byStatus, pendingPlusOneRequests });
+    const acceptedSnap = await db
+      .collection("invitations")
+      .where("status", "==", "accepted")
+      .get();
+    const totalPeopleComing = acceptedSnap.docs.reduce(
+      (sum, doc) => sum + headcountForAcceptedGuest(doc.data()),
+      0,
+    );
+
+    return NextResponse.json({
+      total,
+      byStatus,
+      pendingPlusOneRequests,
+      totalPeopleComing,
+    });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });

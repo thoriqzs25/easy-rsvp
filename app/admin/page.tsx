@@ -8,6 +8,7 @@ type Stats = {
   total: number;
   byStatus: Record<string, number>;
   pendingPlusOneRequests: number;
+  totalPeopleComing: number;
 };
 
 type ActivityItem = {
@@ -81,7 +82,8 @@ export default function DashboardPage() {
       <div>
         <h1 className="font-serif text-3xl text-stone-900">Dashboard</h1>
         <p className="text-stone-600 mt-1">
-          Track RSVPs and recent activity. Accepted count helps you judge capacity.
+          Track RSVPs and recent activity. Total People counts accepted guests plus
+          their plus-ones.
         </p>
       </div>
 
@@ -89,10 +91,11 @@ export default function DashboardPage() {
 
       {stats ? (
         <div className="space-y-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
             {(
               [
-                ["total", "Total", stats.total],
+                ["total", "Total Invitation", stats.total],
+                ["totalPeople", "Total People", stats.totalPeopleComing ?? 0],
                 ["accepted", "Accepted", stats.byStatus.accepted],
                 ["pending", "Pending", stats.byStatus.pending],
                 ["declined", "Declined", stats.byStatus.declined],
@@ -102,12 +105,26 @@ export default function DashboardPage() {
             ).map(([key, label, n]) => (
               <div
                 key={key}
-                className="rounded-xl border border-stone-200 bg-white p-4 shadow-sm"
+                className={`rounded-xl border p-4 shadow-sm ${
+                  key === "totalPeople"
+                    ? "border-emerald-200 bg-emerald-50/80"
+                    : "border-stone-200 bg-white"
+                }`}
               >
-                <p className="text-xs uppercase tracking-wide text-stone-500">
+                <p
+                  className={`text-xs uppercase tracking-wide ${
+                    key === "totalPeople" ? "text-emerald-800" : "text-stone-500"
+                  }`}
+                >
                   {label}
                 </p>
-                <p className="text-2xl font-serif text-stone-900 mt-1">{n}</p>
+                <p
+                  className={`text-2xl font-serif mt-1 ${
+                    key === "totalPeople" ? "text-emerald-950" : "text-stone-900"
+                  }`}
+                >
+                  {n}
+                </p>
               </div>
             ))}
           </div>

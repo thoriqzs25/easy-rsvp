@@ -8,6 +8,16 @@ export function readIncludesPlusOne(d: DocumentData): boolean {
   return d.includes_plus_one !== false;
 }
 
+/** Whether an accepted guest counts as bringing a plus-one. */
+export function guestHasPlusOne(d: DocumentData): boolean {
+  return d.allow_plus_one === true || d.includes_plus_one === true;
+}
+
+/** Headcount for a single accepted invitation (1 guest, or 2 with +1). */
+export function headcountForAcceptedGuest(d: DocumentData): number {
+  return guestHasPlusOne(d) ? 2 : 1;
+}
+
 export function readPlusOneRequestStatusPublic(
   d: DocumentData,
 ): PlusOneRequestStatusPublic {
