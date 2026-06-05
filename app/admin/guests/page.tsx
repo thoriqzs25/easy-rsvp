@@ -525,21 +525,6 @@ export default function GuestsPage() {
     [items, selected],
   );
 
-  const selectedForDelete = useMemo(
-    () => items.filter((g) => selected.has(g.id)),
-    [items, selected],
-  );
-
-  const selectedDeleteDrafts = useMemo(
-    () => selectedForDelete.filter((g) => g.status === "draft").length,
-    [selectedForDelete],
-  );
-
-  const selectedDeleteRevokes = useMemo(
-    () => selectedForDelete.filter((g) => g.status !== "draft").length,
-    [selectedForDelete],
-  );
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -969,11 +954,8 @@ export default function GuestsPage() {
           <div className="bg-white rounded-xl border border-stone-200 p-6 max-w-sm w-full shadow-lg space-y-4">
             <h3 className="font-serif text-xl text-stone-900">Confirm bulk delete</h3>
             <p className="text-sm text-stone-600">
-              {selectedDeleteDrafts > 0 && selectedDeleteRevokes === 0
-                ? `Delete ${selectedDeleteDrafts} draft friend${selectedDeleteDrafts === 1 ? "" : "s"}?`
-                : selectedDeleteRevokes > 0 && selectedDeleteDrafts === 0
-                  ? `This will revoke ${selectedDeleteRevokes} invitation${selectedDeleteRevokes === 1 ? "" : "s"}. Continue?`
-                  : `Delete ${selectedDeleteDrafts} draft${selectedDeleteDrafts === 1 ? "" : "s"} and revoke ${selectedDeleteRevokes} invitation${selectedDeleteRevokes === 1 ? "" : "s"}. Continue?`}
+              Permanently delete {selected.size} guest{selected.size === 1 ? "" : "s"}? This cannot be
+              undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -1002,12 +984,7 @@ export default function GuestsPage() {
           <div className="bg-white rounded-xl border border-stone-200 p-6 max-w-sm w-full shadow-lg space-y-4">
             <h3 className="font-serif text-xl text-stone-900">Confirm</h3>
             <p className="text-sm text-stone-600">
-              {(() => {
-                const g = rawItems.find((x) => x.id === showDeleteConfirm);
-                if (!g) return "";
-                if (g.status === "draft") return "Delete this draft friend?";
-                return "This will revoke the invitation. Continue?";
-              })()}
+              Permanently delete this guest? This cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button

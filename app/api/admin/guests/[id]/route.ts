@@ -2,10 +2,8 @@ import { NextResponse } from "next/server";
 import { FieldValue, type DocumentData } from "firebase-admin/firestore";
 import { requireAdmin } from "@/lib/auth-api";
 import { adminDb } from "@/lib/firebase-admin";
-import { logActivity } from "@/lib/activity";
 import { toIso } from "@/lib/serialize-invitation";
-import type { InviteLocale, InvitationStatus } from "@/lib/types";
-import { plusOneRequestFieldDeletes } from "@/lib/plus-one";
+import type { InviteLocale } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -123,38 +121,8 @@ export async function DELETE(
       return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
     }
 
-    const d = snap.data()!;
-    const status = d.status as InvitationStatus;
-
-    if (status === "draft") {
-      // Hard delete for drafts
-      await ref.delete();
-      return NextResponse.json({ ok: true, deleted: true });
-    }
-
-    // For non-drafts, revoke the invitation instead
-    const revokePatch: Record<string, unknown> = {
-      status: "revoked",
-      updated_at: FieldValue.serverTimestamp(),
-    };
-
-    if (d.wishes !== undefined && d.wishes !== null) {
-      revokePatch.wishes = FieldValue.delete();
-    }
-    if (d.responded_at !== undefined && d.responded_at !== null) {
-      revokePatch.responded_at = FieldValue.delete();
-    }
-
-    await ref.update(revokePatch);
-
-    await logActivity(adminDb(), {
-      kind: "invitation_revoked",
-      invitationId: id,
-      guestName: d.guest_name,
-      actorAdminId: auth.admin.uid,
-    });
-
-    return NextResponse.json({ ok: true, revoked: true });
+    await ref.delete();
+    return NextResponse.json({ ok: true, deleted: true });
   } catch (e) {
     console.error(e);
     return NextResponse.json({ error: "SERVER_ERROR" }, { status: 500 });
